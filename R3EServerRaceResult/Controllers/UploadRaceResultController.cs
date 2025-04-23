@@ -10,20 +10,23 @@ namespace R3EServerRaceResult.Controllers
     [ApiController]
     public class UploadRaceResultController : ControllerBase
     {
-        private readonly string storagePath = "/app/data";
         private readonly ChampionshipAppSettings settings;
+        private readonly FileStorageAppSettings fileStorageAppSettings;
 
         private readonly JsonSerializerOptions options = new()
         {
             WriteIndented = true
         };
 
-        public UploadRaceResultController(IOptions<ChampionshipAppSettings> settings)
+        public UploadRaceResultController(IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings)
         {
             this.settings = settings.Value;
+            this.fileStorageAppSettings = fileStorageAppSettings.Value;
         }
 
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UploadJson([FromBody] JsonElement json)
         {
             Result result;
@@ -38,33 +41,35 @@ namespace R3EServerRaceResult.Controllers
 
             // 1. Save the uploaded JSON to a timestamped file
             var fileName = $"result{result.StartTime:MMddyyyy}.json";
-            var path = Path.Combine(storagePath, result.StartTime.Year.ToString(), result.StartTime.Month.ToString());
-            var raceResultPath = Path.Combine(path, fileName);
+            var webResultPath = Path.Combine(result.StartTime.Year.ToString(), result.StartTime.Month.ToString());
+            var diskPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, webResultPath);
+            var diskRaceResultPath = Path.Combine(diskPath, fileName);
+            var webRaceResultPath = Path.Combine(webResultPath, fileName);
             try
             {
-                Directory.CreateDirectory(path);
-                await System.IO.File.WriteAllTextAsync(raceResultPath, json.ToString());
+                Directory.CreateDirectory(diskPath);
+                await System.IO.File.WriteAllTextAsync(diskRaceResultPath, json.ToString());
             }
             catch (Exception ex)
             {
                 return BadRequest($"{ex.Message}");
             }
 
-            var summaryPath = Path.Combine(path, "result.json");
+            var summaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, result.StartTime.Year.ToString(), $"{fileStorageAppSettings.ResultFileName}.json");
 
-            await MakeSimResultSummary(summaryPath, raceResultPath, result);
+            await MakeSimResultSummary(summaryPath, webRaceResultPath, result);
 
             return Ok(new { status = "Success" });
         }
 
         private static string EventName(DateTime dateTime)
         {
-            return $"{dateTime:MMddyyyy} Race";
+            return $"{dateTime:MMMM yyyy} Race";
         }
 
         private static string LogPath(string webServer, string resultPath)
         {
-            return $"https://{webServer}{resultPath}";
+            return $"{webServer}/{resultPath}";
         }
 
         private async Task MakeSimResultSummary(string summaryFilePath, string resultFilePath, Result r3EResult)
