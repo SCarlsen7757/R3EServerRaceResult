@@ -1,0 +1,6 @@
+@R3EServerRaceResult_HostAddress = http://localhost:5070
+
+GET {{R3EServerRaceResult_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

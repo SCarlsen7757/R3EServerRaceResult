@@ -1,0 +1,13 @@
+services:
+  r3eserverraceresult:
+    image: ${DOCKER_REGISTRY-}r3eserverraceresult
+    build:
+      context: R3EServerRaceResult
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+    volumes:
+      - SimResultsData:/app/data
+
+volumes:
+  SimResultsData:
