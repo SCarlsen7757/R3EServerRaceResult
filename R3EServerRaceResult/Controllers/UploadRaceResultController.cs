@@ -62,7 +62,7 @@ namespace R3EServerRaceResult.Controllers
 
         private static string EventName(DateTime dateTime)
         {
-            return $"{dateTime:MMMM yyyy} Race";
+            return $"{dateTime:MMMM} Race {dateTime:yyyy}";
         }
 
         private static string LogPath(string webServer, string resultPath)
