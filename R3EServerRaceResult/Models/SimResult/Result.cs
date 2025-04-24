@@ -9,5 +9,9 @@ namespace R3EServerRaceResult.Models.SimResult
 
         [JsonPropertyName("log")]
         public List<string> Log { get; set; } = [];
+
+        [JsonPropertyName("config")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public Config? Config { get; set; }
     }
 }

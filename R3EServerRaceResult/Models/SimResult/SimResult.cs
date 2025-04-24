@@ -6,16 +6,9 @@ namespace R3EServerRaceResult.Models.SimResult
     {
         public SimResult() { }
 
-        public SimResult(Settings.ChampionshipAppSettings appSettings)
+        public SimResult(Settings.ChampionshipAppSettings settings)
         {
-            Config.LogoUrl = appSettings.LogoUrl;
-            Config.Event = appSettings.EventName;
-            Config.EventUrl = appSettings.EventUrl;
-            Config.League = appSettings.LeagueName;
-            Config.LeagueUrl = appSettings.LeaugeUrl;
-            Config.Points = string.Join(',', appSettings.PointSystem.Race);
-            Config.QPoints = string.Join(',', appSettings.PointSystem.Qualify);
-            Config.BestLapBoints = appSettings.PointSystem.BestLap.ToString();
+            Config = new(settings);
         }
 
         [JsonPropertyName("name")]
@@ -25,6 +18,6 @@ namespace R3EServerRaceResult.Models.SimResult
         public List<Result> Results { get; set; } = [];
 
         [JsonPropertyName("config")]
-        public Config Config { get; set; } = new();
+        public Config? Config { get; set; }
     }
 }
