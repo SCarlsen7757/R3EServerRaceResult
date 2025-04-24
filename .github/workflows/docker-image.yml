@@ -23,10 +23,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository | toLowerCase }}
-          tags: |
-            sha
-            raw,value=latest
+          images: ghcr.io/${{ github.repository }}  # Using the lowercase version in the next steps
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -41,4 +38,4 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository | toLowerCase }}:latest
+          tags: ghcr.io/${{ github.repository }}:latest
