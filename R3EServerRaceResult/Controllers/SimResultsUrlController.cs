@@ -30,7 +30,7 @@ namespace R3EServerRaceResult.Controllers
                 if (file.StartsWith(fileStorageAppSettings.MountedVolumePath))
                 {
                     string webPath = file.Substring(fileStorageAppSettings.MountedVolumePath.Length);
-                    string url = $"simresults.net/remote?{HttpUtility.UrlEncode($"{settings.WebServer}{webPath}")}";
+                    string url = $"simresults.net/remote?results={HttpUtility.UrlEncode($"{settings.WebServer}{webPath}")}";
                     urls.Add(url);
                 }
             }
