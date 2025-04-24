@@ -19,7 +19,6 @@ namespace R3EServerRaceResult.Controllers
         }
 
         [HttpGet]
-        [ProducesResponseType(StatusCodes.Status200OK)]
         public IActionResult Get()
         {
             List<string> urls = [];

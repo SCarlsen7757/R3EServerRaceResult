@@ -25,8 +25,6 @@ namespace R3EServerRaceResult.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UploadJson([FromBody] JsonElement json)
         {
             Result result;
@@ -52,7 +50,7 @@ namespace R3EServerRaceResult.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"{ex.Message}");
+                return BadRequest(new { status = "Invalid operation!", exception = ex.Message });
             }
 
             var summaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, result.StartTime.Year.ToString(), $"{fileStorageAppSettings.ResultFileName}.json");
