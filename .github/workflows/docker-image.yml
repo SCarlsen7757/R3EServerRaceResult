@@ -22,7 +22,7 @@ jobs:
       - name: Generate version number from Git tags
         id: get_version
         run: |
-          VERSION=$(git describe --tags --abbrev=0)
+          VERSION=$(git describe --tags --abbrev=0 || echo "v0.0.0")
           echo "Version: $VERSION"
           echo "version=${VERSION}" >> $GITHUB_ENV
 
@@ -34,7 +34,7 @@ jobs:
           tags: |
             type=sha
             type=raw,value=latest
-            type=version,value=${{ env.version }}  # Use version from environment
+            type=version,value=${{ steps.get_version.outputs.version }}  # Version from semantic tags
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
