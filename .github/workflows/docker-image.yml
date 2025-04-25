@@ -23,18 +23,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=sha
-            type=raw,value=latest
-            type=version,value=${{ steps.get_version.outputs.version }}  # Version from semantic tags
-
-      - name: Generate version number from Git tags
-        id: get_version
-        run: |
-          VERSION=$(git describe --tags --abbrev=0)
-          echo "Version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_ENV
+          images: ghcr.io/scarlsen7757/r3eserverraceresult  # Using the lowercase version in the next steps SCarlsen7757/R3EServerRaceResult ${{ github.repository }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -46,9 +35,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: Dockerfile
+          context: ./R3EServerRaceResult
+          file: ./R3EServerRaceResult/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ env.version }}
+          tags: ghcr.io/scarlsen7757/r3eserverraceresult:latest # ${{ github.repository }}
