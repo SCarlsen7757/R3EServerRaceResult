@@ -23,7 +23,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}  # Using the lowercase version in the next steps
+          images: ghcr.io/scarlsen7757/r3eserverraceresult  # Using the lowercase version in the next steps SCarlsen7757/R3EServerRaceResult ${{ github.repository }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -38,4 +38,4 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ghcr.io/scarlsen7757/r3eserverraceresult:latest # ${{ github.repository }}
