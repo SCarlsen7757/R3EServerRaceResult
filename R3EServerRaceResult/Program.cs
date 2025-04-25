@@ -36,6 +36,7 @@ builder.Services.Configure<ChampionshipAppSettings>(options =>
     options.PointSystem = pointSystem;
 });
 
+//Read from environment variables for file storage settings
 builder.Services.Configure<FileStorageAppSettings>(options =>
 {
     var envMountedVolumePath = builder.Configuration["FILE_STORAGE_MOUNTED_VOLUME_PATH"];
