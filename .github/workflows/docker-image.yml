@@ -34,9 +34,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: Dockerfile
+          context: ./R3EServerRaceResult
+          file: ./R3EServerRaceResult/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ env.version }}
+            ghcr.io/scarlsen7757/r3eserverraceresult:latest
+            ghcr.io/scarlsen7757/r3eserverraceresult:${{ env.version }}
