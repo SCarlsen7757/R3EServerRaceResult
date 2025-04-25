@@ -36,6 +36,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./R3EServerRaceResult
-          file: Dockerfile
+          file: ./R3EServerRaceResult/Dockerfile
           push: true
           tags: ghcr.io/scarlsen7757/r3eserverraceresult:latest # ${{ github.repository }}
