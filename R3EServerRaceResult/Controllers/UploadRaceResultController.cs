@@ -25,12 +25,23 @@ namespace R3EServerRaceResult.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadJson([FromBody] JsonElement json)
+        public async Task<IActionResult> UploadJson(IFormFile file)
         {
-            Result result;
+            if (file == null)
+            {
+                return BadRequest(new { status = "No file part found" });
+            }
+
+            JsonDocument? json;
+            Result? result;
             try
             {
-                result = JsonSerializer.Deserialize<Result>(json)!;
+                using var stream = file.OpenReadStream();
+                json = await JsonDocument.ParseAsync(stream);
+                if (json == null) return BadRequest(new { status = "Invalid JSON format!" });
+
+                result = JsonSerializer.Deserialize<Result>(json);
+                if (result == null) return BadRequest(new { status = "Invalid JSON format!" });
             }
             catch (Exception ex)
             {
