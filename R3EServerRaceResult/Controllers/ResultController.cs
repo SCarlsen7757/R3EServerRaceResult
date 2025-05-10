@@ -75,7 +75,7 @@ namespace R3EServerRaceResult.Controllers
         {
             string filePath = Path.Combine(fileStorageAppSettings.MountedVolumePath, file);
             if (!System.IO.File.Exists(filePath))
-                return BadRequest(new { status = "File not found!" });
+                return NotFound(new { status = "File not found!" });
 
             await RemoveResultFromSummary(filePath);
             System.IO.File.Delete(filePath);
