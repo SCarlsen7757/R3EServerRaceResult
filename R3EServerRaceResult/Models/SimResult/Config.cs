@@ -173,5 +173,19 @@ namespace R3EServerRaceResult.Models.SimResult
         [JsonPropertyName("hide_aids")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? HideAids { get; set; }
+
+        public void PatchWith(Config patchConfig)
+        {
+            ArgumentNullException.ThrowIfNull(patchConfig);
+
+            foreach (var property in typeof(Config).GetProperties())
+            {
+                var newValue = property.GetValue(patchConfig);
+                if (newValue != null)
+                {
+                    property.SetValue(this, newValue);
+                }
+            }
+        }
     }
 }
