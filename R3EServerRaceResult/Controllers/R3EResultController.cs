@@ -4,27 +4,20 @@ using R3EServerRaceResult.Models.R3EServerResult;
 using R3EServerRaceResult.Settings;
 using System.Net;
 using System.Text.Json;
-using System.Web;
 
 namespace R3EServerRaceResult.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ResultController : ControllerBase
+    public class R3EResultController(IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings) : ControllerBase
     {
-        private readonly ChampionshipAppSettings settings;
-        private readonly FileStorageAppSettings fileStorageAppSettings;
+        private readonly ChampionshipAppSettings settings = settings.Value;
+        private readonly FileStorageAppSettings fileStorageAppSettings = fileStorageAppSettings.Value;
 
         private readonly JsonSerializerOptions options = new()
         {
             WriteIndented = true
         };
-
-        public ResultController(IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings)
-        {
-            this.settings = settings.Value;
-            this.fileStorageAppSettings = fileStorageAppSettings.Value;
-        }
 
         [HttpPost("Upload")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
@@ -174,25 +167,7 @@ namespace R3EServerRaceResult.Controllers
             return Ok();
         }
 
-        [HttpGet("SimResultUrl")]
-        [ProducesResponseType(typeof(IList<string>), (int)HttpStatusCode.OK)]
-        public IActionResult SimResultUrl()
-        {
-            List<string> urls = [];
 
-            var files = Directory.GetFiles(fileStorageAppSettings.MountedVolumePath, $"{fileStorageAppSettings.ResultFileName}.json", SearchOption.AllDirectories);
-            foreach (var file in files)
-            {
-                if (file.StartsWith(fileStorageAppSettings.MountedVolumePath))
-                {
-                    string webPath = file[fileStorageAppSettings.MountedVolumePath.Length..];
-                    string url = $"simresults.net/remote?results={HttpUtility.UrlEncode($"{settings.WebServer}{webPath}")}";
-                    urls.Add(url);
-                }
-            }
-
-            return Ok(urls);
-        }
 
         private async Task MakeSimResultSummary(string resultFilePath, Result r3EResult)
         {
