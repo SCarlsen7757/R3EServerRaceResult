@@ -14,160 +14,67 @@ namespace R3EServerRaceResult.Controllers
         private readonly ChampionshipAppSettings settings = settings.Value;
         private readonly FileStorageAppSettings fileStorageAppSettings = fileStorageAppSettings.Value;
 
-        private readonly JsonSerializerOptions options = new()
+        private readonly JsonSerializerOptions jsonSerializerOption = new()
         {
             WriteIndented = true
         };
 
-        [HttpPost("Upload")]
+        [HttpPost()]
         [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         public async Task<IActionResult> UploadJson(IFormFile file)
         {
-            if (file == null)
-            {
-                return BadRequest("No file part found");
-            }
+            if (file == null) return NoContent();
 
-            JsonDocument? json;
-            Result? result;
-            try
-            {
-                using var stream = file.OpenReadStream();
-                json = await JsonDocument.ParseAsync(stream);
-                if (json == null) return BadRequest("Invalid JSON format!");
+            var result = await DeserializeJsonFile<Result>(file);
+            if (result == null) return BadRequest("Invalid JSON format!");
 
-                result = JsonSerializer.Deserialize<Result>(json);
-                if (result == null) return BadRequest("Invalid JSON format!");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.ToString());
-            }
-
-            // 1. Save the uploaded JSON to a timestamped file
             var fileName = ResultFileName(result);
             var webResultPath = WebResultPath(result);
             var diskPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, webResultPath);
             var diskRaceResultPath = Path.Combine(diskPath, fileName);
-            var webRaceResultPath = Path.Combine(webResultPath, fileName);
+
             try
             {
                 Directory.CreateDirectory(diskPath);
-                await System.IO.File.WriteAllTextAsync(diskRaceResultPath, json.RootElement.GetRawText());
+                await System.IO.File.WriteAllTextAsync(diskRaceResultPath, JsonSerializer.Serialize(result, jsonSerializerOption));
+
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.ToString());
             }
 
-            await MakeSimResultSummary(webRaceResultPath, result);
-
+            await MakeSimResultSummary(webResultPath, result);
             return Ok();
         }
 
-        [HttpGet("Config")]
-        [ProducesResponseType(typeof(Models.SimResult.Config), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> GetConfigJson(string summaryPath, string? resultName)
+        private async Task<T?> DeserializeJsonFile<T>(IFormFile file) where T : class
         {
-            var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
-            if (!System.IO.File.Exists(diskSummaryPath)) return NotFound("No summary file found!");
-
-            var summaryJson = await System.IO.File.ReadAllTextAsync(diskSummaryPath);
-            var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
-            if (summary == null) return BadRequest("Invalid JSON format!");
-
-            if (string.IsNullOrWhiteSpace(resultName))
+            try
             {
-                return Ok(summary.Config);
+                using var stream = file.OpenReadStream();
+                return await JsonSerializer.DeserializeAsync<T>(stream, jsonSerializerOption);
             }
-
-            var result = summary.Results.FirstOrDefault(x => x.Name == resultName);
-            if (result == null) return NotFound("Result name not found!");
-            return Ok(result.Config);
+            catch
+            {
+                return null;
+            }
         }
 
-        [HttpPut("Config")]
-        [ProducesResponseType(typeof(Models.SimResult.SimResult), (int)HttpStatusCode.OK)]
+        [HttpDelete()]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> UpdateConfigJson([FromBody] Models.SimResult.Config? config, string summaryPath, string? resultName)
-        {
-            var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
-            if (!System.IO.File.Exists(diskSummaryPath)) return NotFound("No summary file found!");
-
-            var summaryJson = await System.IO.File.ReadAllTextAsync(diskSummaryPath);
-            var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
-            if (summary == null) return BadRequest("Invalid JSON format!");
-
-            if (string.IsNullOrWhiteSpace(resultName))
-            {
-                summary.Config = config;
-            }
-            else
-            {
-                var result = summary.Results.FirstOrDefault(x => x.Name == resultName);
-                if (result == null) return NotFound("Result name not found!");
-                result.Config = config;
-            }
-
-            using FileStream fileStream = System.IO.File.Create(diskSummaryPath);
-            await JsonSerializer.SerializeAsync(fileStream, summary, options);
-
-            return Ok(summary);
-        }
-
-        [HttpPatch("Config")]
-        public async Task<IActionResult> PatchConfigJson([FromBody] Models.SimResult.Config config, string summaryPath, string? resultName)
-        {
-            var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
-            if (!System.IO.File.Exists(diskSummaryPath)) return NotFound("No summary file found!");
-            var summaryJson = await System.IO.File.ReadAllTextAsync(diskSummaryPath);
-            var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
-            if (summary == null) return BadRequest("Invalid JSON format!");
-            if (string.IsNullOrWhiteSpace(resultName))
-            {
-                if (summary.Config == null)
-                {
-                    summary.Config = config;
-                }
-                else
-                {
-                    summary.Config.PatchWith(config);
-                }
-            }
-            else
-            {
-                var result = summary.Results.FirstOrDefault(x => x.Name == resultName);
-                if (result == null) return NotFound("Result name not found!");
-                if (result.Config == null)
-                {
-                    result.Config = config;
-                }
-                else
-                {
-                    result.Config.PatchWith(config);
-                }
-            }
-            using FileStream fileStream = System.IO.File.Create(diskSummaryPath);
-            await JsonSerializer.SerializeAsync(fileStream, summary, options);
-            return Ok();
-        }
-
-        [HttpDelete("Delete")]
         public async Task<IActionResult> DeleteJson(string file)
         {
             string filePath = Path.Combine(fileStorageAppSettings.MountedVolumePath, file);
-            if (!System.IO.File.Exists(filePath))
-                return NotFound("File not found!");
+            if (!System.IO.File.Exists(filePath)) return NotFound("File not found!");
 
             await RemoveResultFromSummary(filePath);
             System.IO.File.Delete(filePath);
             return Ok();
         }
-
-
 
         private async Task MakeSimResultSummary(string resultFilePath, Result r3EResult)
         {
@@ -188,7 +95,7 @@ namespace R3EServerRaceResult.Controllers
 
             using FileStream fileStream = System.IO.File.Create(summaryFilePath);
 
-            await JsonSerializer.SerializeAsync(fileStream, simResult, options);
+            await JsonSerializer.SerializeAsync(fileStream, simResult, jsonSerializerOption);
         }
 
         private async Task RemoveResultFromSummary(string resultFilePath)
@@ -220,7 +127,7 @@ namespace R3EServerRaceResult.Controllers
             }
 
             using FileStream fileStream = System.IO.File.Create(summaryFilePath);
-            await JsonSerializer.SerializeAsync(fileStream, simResult, options);
+            await JsonSerializer.SerializeAsync(fileStream, simResult, jsonSerializerOption);
         }
 
         private static string EventName(DateTime dateTime)
@@ -240,7 +147,7 @@ namespace R3EServerRaceResult.Controllers
 
         private static string ResultFileName(Result result)
         {
-            return $"result{result.StartTime:MMddyyyy}.json";
+            return $"result_{result.StartTime:HHmm_MMddyyyy}.json";
         }
 
         private static string WebResultPath(Result result)
