@@ -9,10 +9,11 @@ namespace R3EServerRaceResult.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class R3EResultController(IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings) : ControllerBase
+    public class R3EResultController(ILogger<R3EResultController> logger, IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings) : ControllerBase
     {
         private readonly ChampionshipAppSettings settings = settings.Value;
         private readonly FileStorageAppSettings fileStorageAppSettings = fileStorageAppSettings.Value;
+        private readonly ILogger<R3EResultController> logger = logger;
 
         private readonly JsonSerializerOptions jsonSerializerOption = new()
         {
@@ -25,10 +26,22 @@ namespace R3EServerRaceResult.Controllers
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> UploadJson(IFormFile file)
         {
-            if (file == null) return NoContent();
+            var ipAddress = HttpContext.Connection.RemoteIpAddress;
+            logger.LogDebug("Remote IP address: {ipAddress}", ipAddress?.ToString());
+
+            if (file == null)
+            {
+                logger.LogCritical("File from R3E server is null");
+                return BadRequest("File is null.");
+            }
 
             var result = await DeserializeJsonFile<Result>(file);
-            if (result == null) return BadRequest("Invalid JSON format!");
+            if (result == null)
+            {
+                logger.LogCritical("Error deserializing R3E race result: {FileName}", file.FileName);
+                logger.LogDebug("Error deserializing R3E race result content: {content}", file.ToString());
+                return BadRequest("Invalid JSON format!");
+            }
 
             var fileName = ResultFileName(result);
             var webResultPath = WebResultPath(result);
@@ -39,10 +52,11 @@ namespace R3EServerRaceResult.Controllers
             {
                 Directory.CreateDirectory(diskPath);
                 await System.IO.File.WriteAllTextAsync(diskRaceResultPath, JsonSerializer.Serialize(result, jsonSerializerOption));
-
+                logger.LogInformation("File saved: {FileName}", diskRaceResultPath);
             }
             catch (Exception ex)
             {
+                logger.LogCritical(ex, "Error writing file to disk: {FileName}", diskRaceResultPath);
                 return BadRequest(ex.ToString());
             }
 
@@ -69,10 +83,15 @@ namespace R3EServerRaceResult.Controllers
         public async Task<IActionResult> DeleteJson(string file)
         {
             string filePath = Path.Combine(fileStorageAppSettings.MountedVolumePath, file);
-            if (!System.IO.File.Exists(filePath)) return NotFound("File not found!");
+            if (!System.IO.File.Exists(filePath))
+            {
+                logger.LogDebug("File not found: {FilePath}", filePath);
+                return NotFound("File not found!");
+            }
 
             await RemoveResultFromSummary(filePath);
             System.IO.File.Delete(filePath);
+            logger.LogInformation("File deleted: {FilePath}", filePath);
             return Ok();
         }
 
@@ -86,13 +105,20 @@ namespace R3EServerRaceResult.Controllers
 
             if (!simResult.Results.Any(x => x.Name == EventName(r3EResult.StartTime)))
             {
-                simResult.Results.Add(new Models.SimResult.Result() { Name = EventName(r3EResult.StartTime) });
+                var eventName = EventName(r3EResult.StartTime);
+                simResult.Results.Add(new Models.SimResult.Result() { Name = eventName });
+                logger.LogInformation("New race event added to Sim result summary: {EventName}", eventName);
             }
             var result = simResult.Results.Last();
             var logPath = LogPath(settings.WebServer, resultFilePath);
-            if (result.Log.Contains(logPath)) return;
-            result.Log.Add(logPath);
+            if (result.Log.Contains(logPath))
+            {
+                logger.LogDebug("Race result already exists in Sim result summary: {LogPath}", logPath);
+                return;
+            }
 
+            result.Log.Add(logPath);
+            logger.LogInformation("Race result added to Sim result summary: {LogPath}", logPath);
             using FileStream fileStream = System.IO.File.Create(summaryFilePath);
 
             await JsonSerializer.SerializeAsync(fileStream, simResult, jsonSerializerOption);

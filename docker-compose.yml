@@ -12,6 +12,7 @@ services:
       - CHAMPIONSHIP_EVENTNAME=Championship
       - CHAMPIONSHIP_LEAGUENAME=R3E <3
       - FILE_STORAGE_MOUNTED_VOLUME_PATH=/app/data #The same path for the mounted volume
+      - LOG_LEVEL=TRACE 
     volumes:
       - SimResultsData:/app/data
     user: "0" # run as root
