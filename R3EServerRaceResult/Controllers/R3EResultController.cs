@@ -60,7 +60,7 @@ namespace R3EServerRaceResult.Controllers
                 return BadRequest(ex.ToString());
             }
 
-            await MakeSimResultSummary(webResultPath, result);
+            await MakeSimResultSummary(Path.Combine(webResultPath, fileName), result);
             return Ok();
         }
 
