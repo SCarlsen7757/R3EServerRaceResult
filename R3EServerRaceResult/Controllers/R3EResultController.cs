@@ -71,7 +71,7 @@ namespace R3EServerRaceResult.Controllers
                 using var stream = file.OpenReadStream();
                 return await JsonSerializer.DeserializeAsync<T>(stream, jsonSerializerOption);
             }
-            catch
+            catch (JsonException)
             {
                 return null;
             }

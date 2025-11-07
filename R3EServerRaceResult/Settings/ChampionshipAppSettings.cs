@@ -7,7 +7,7 @@
         public string EventUrl { get; set; } = string.Empty;
         public string LogoUrl { get; set; } = string.Empty;
         public string LeagueName { get; set; } = string.Empty;
-        public string LeaugeUrl { get; set; } = string.Empty;
+        public string LeagueUrl { get; set; } = string.Empty;
         public PointSystem PointSystem { get; set; } = new();
     }
 }

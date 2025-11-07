@@ -37,7 +37,7 @@ builder.Services.Configure<ChampionshipAppSettings>(options =>
     if (!string.IsNullOrWhiteSpace(envLeagueName)) options.LeagueName = envLeagueName;
 
     var envLeagueUrl = builder.Configuration.GetValue("CHAMPIONSHIP_LEAGUEURL", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envLeagueUrl)) options.LeaugeUrl = envLeagueUrl;
+    if (!string.IsNullOrWhiteSpace(envLeagueUrl)) options.LeagueUrl = envLeagueUrl;
 
     PointSystem pointSystem = new();
     var envPointSystemRace = builder.Configuration.GetValue("CHAMPIONSHIP_POINTSYSTEM_RACE", string.Empty);
@@ -67,6 +67,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddHealthChecks();
+
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -92,5 +94,7 @@ app.Use(async (context, next) =>
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();
