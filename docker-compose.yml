@@ -8,11 +8,26 @@ services:
     ports:
       - "8251:8080"
     environment:
-      - CHAMPIONSHIP_WEBSERVER=http://your-domain.com:8251
-      - CHAMPIONSHIP_EVENTNAME=Championship
-      - CHAMPIONSHIP_LEAGUENAME=R3E <3
-      - FILE_STORAGE_MOUNTED_VOLUME_PATH=/app/data #The same path for the mounted volume
-      - LOG_LEVEL=TRACE 
+      - LOG_LEVEL=TRACE
+      - Championship__WebServer=http://your-domain.com:8251
+      - Championship__EventName=Championship
+      - Championship__LeagueName=R3E <3
+      - Championship__PointSystem__RacePoints__0=25
+      - Championship__PointSystem__RacePoints__1=18
+      - Championship__PointSystem__RacePoints__2=15
+      - Championship__PointSystem__RacePoints__3=12
+      - Championship__PointSystem__RacePoints__4=10
+      - Championship__PointSystem__RacePoints__5=8
+      - Championship__PointSystem__RacePoints__6=6
+      - Championship__PointSystem__RacePoints__7=4
+      - Championship__PointSystem__RacePoints__8=2
+      - Championship__PointSystem__RacePoints__9=1
+      - Championship__PointSystem__QualifyingPoints__0=3
+      - Championship__PointSystem__QualifyingPoints__1=2
+      - Championship__PointSystem__QualifyingPoints__2=1
+      - Championship__PointSystem__FastestLapPoints=1
+      - FileStorage__MountedVolumePath=/app/data
+      - FileStorage__ResultFileName=summary
     volumes:
       - SimResultsData:/app/data
     user: "0" # run as root
