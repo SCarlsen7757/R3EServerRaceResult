@@ -4,10 +4,10 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
 {
     public class RaceCountGroupingStrategy : IChampionshipGroupingStrategy
     {
-        private readonly int _racesPerChampionship;
-        private readonly DateTime? _championshipStartDate;
-        private readonly Dictionary<string, int> _raceCountTracker = new();
-        private readonly object _lock = new();
+        private readonly int racesPerChampionship;
+        private readonly DateTime? championshipStartDate;
+        private readonly Dictionary<string, int> raceCountTracker = [];
+        private readonly Lock @lock = new();
 
         public RaceCountGroupingStrategy(int racesPerChampionship, DateTime? championshipStartDate = null)
         {
@@ -15,8 +15,8 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
             {
                 throw new ArgumentException("Races per championship must be greater than 0", nameof(racesPerChampionship));
             }
-            _racesPerChampionship = racesPerChampionship;
-            _championshipStartDate = championshipStartDate;
+            this.racesPerChampionship = racesPerChampionship;
+            this.championshipStartDate = championshipStartDate;
         }
 
         public string GetChampionshipKey(Result raceResult)
@@ -30,19 +30,19 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
         {
             var year = raceResult.StartTime.Year;
             var yearKey = year.ToString();
-            
-            lock (_lock)
+
+            lock (@lock)
             {
-                if (!_raceCountTracker.ContainsKey(yearKey))
+                if (!raceCountTracker.ContainsKey(yearKey))
                 {
-                    _raceCountTracker[yearKey] = 0;
+                    raceCountTracker.TryAdd(yearKey, 0);
                 }
-                
+
                 var championshipNumber = CalculateChampionshipNumber(raceResult.StartTime);
-                var raceNumber = (_raceCountTracker[yearKey] % _racesPerChampionship) + 1;
-                
-                _raceCountTracker[yearKey]++;
-                
+                var raceNumber = (raceCountTracker[yearKey] % racesPerChampionship) + 1;
+
+                raceCountTracker[yearKey]++;
+
                 return $"Championship {championshipNumber} - Race {raceNumber} ({year})";
             }
         }
@@ -58,37 +58,37 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
         {
             var raceYear = raceDate.Year;
             var raceYearKey = raceYear.ToString();
-            
-            if (_championshipStartDate == null)
+
+            if (championshipStartDate == null)
             {
-                lock (_lock)
+                lock (@lock)
                 {
-                    if (!_raceCountTracker.ContainsKey(raceYearKey))
+                    if (!raceCountTracker.ContainsKey(raceYearKey))
                     {
-                        _raceCountTracker[raceYearKey] = 0;
+                        raceCountTracker.TryAdd(raceYearKey, 0);
                     }
-                    
-                    return (_raceCountTracker[raceYearKey] / _racesPerChampionship) + 1;
+
+                    return (raceCountTracker[raceYearKey] / racesPerChampionship) + 1;
                 }
             }
 
-            var startDate = _championshipStartDate.Value;
+            var startDate = championshipStartDate.Value;
             var daysSinceStart = (raceDate.Date - startDate.Date).Days;
-            
+
             if (daysSinceStart < 0)
             {
                 return 1;
             }
-            
-            lock (_lock)
+
+            lock (@lock)
             {
-                if (!_raceCountTracker.ContainsKey(raceYearKey))
+                if (!raceCountTracker.ContainsKey(raceYearKey))
                 {
-                    _raceCountTracker[raceYearKey] = 0;
+                    raceCountTracker.TryAdd(raceYearKey, 0);
                 }
-                
-                var totalRacesSinceStart = _raceCountTracker[raceYearKey];
-                return (totalRacesSinceStart / _racesPerChampionship) + 1;
+
+                var totalRacesSinceStart = raceCountTracker[raceYearKey];
+                return (totalRacesSinceStart / racesPerChampionship) + 1;
             }
         }
     }
