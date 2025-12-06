@@ -18,7 +18,7 @@ services:
     user: "0" # run as root
 
   staticserver:
-    image: nginx:latest
+    image: nginx:stable-alpine
     container_name: SimResultsWebServer
     ports:
       - "8252:80"
