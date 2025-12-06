@@ -41,7 +41,11 @@ builder.Services.Configure<FileStorageAppSettings>(options =>
         !Enum.TryParse<GroupingStrategyType>(strategyString, true, out var strategy))
     {
         var logger = LoggerFactory.Create(b => b.AddConsole()).CreateLogger("Startup");
-        logger.LogWarning("Invalid GroupingStrategy value '{Strategy}'. Defaulting to Monthly.", strategyString);
+        if (logger.IsEnabled(LogLevel.Warning))
+        {
+            logger.LogWarning("Invalid GroupingStrategy value '{Strategy}'. Defaulting to Monthly.", strategyString);
+        }
+
         options.GroupingStrategy = GroupingStrategyType.Monthly;
     }
 });
@@ -54,7 +58,7 @@ builder.Services.AddSingleton<IChampionshipGroupingStrategy>(sp =>
     return fileStorageSettings.GroupingStrategy switch
     {
         GroupingStrategyType.RaceCount => new RaceCountGroupingStrategy(
-            fileStorageSettings.RacesPerChampionship, 
+            fileStorageSettings.RacesPerChampionship,
             fileStorageSettings.ChampionshipStartDate),
         GroupingStrategyType.Monthly or _ => new MonthlyGroupingStrategy()
     };
