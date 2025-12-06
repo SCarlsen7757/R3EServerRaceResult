@@ -1,3 +1,4 @@
+using R3EServerRaceResult.Services.ChampionshipGrouping;
 using R3EServerRaceResult.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,8 +30,35 @@ builder.Services.Configure<ChampionshipAppSettings>(
     builder.Configuration.GetSection("Championship"));
 
 // Configure File Storage settings from appsettings.json
-builder.Services.Configure<FileStorageAppSettings>(
-    builder.Configuration.GetSection("FileStorage"));
+builder.Services.Configure<FileStorageAppSettings>(options =>
+{
+    var section = builder.Configuration.GetSection("FileStorage");
+    section.Bind(options);
+
+    // Validate and handle invalid enum values
+    var strategyString = section.GetValue<string>("GroupingStrategy");
+    if (!string.IsNullOrEmpty(strategyString) &&
+        !Enum.TryParse<GroupingStrategyType>(strategyString, true, out var strategy))
+    {
+        var logger = LoggerFactory.Create(b => b.AddConsole()).CreateLogger("Startup");
+        logger.LogWarning("Invalid GroupingStrategy value '{Strategy}'. Defaulting to Monthly.", strategyString);
+        options.GroupingStrategy = GroupingStrategyType.Monthly;
+    }
+});
+
+// Register Championship Grouping Strategy
+builder.Services.AddSingleton<IChampionshipGroupingStrategy>(sp =>
+{
+    var fileStorageSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
+
+    return fileStorageSettings.GroupingStrategy switch
+    {
+        GroupingStrategyType.RaceCount => new RaceCountGroupingStrategy(
+            fileStorageSettings.RacesPerChampionship, 
+            fileStorageSettings.ChampionshipStartDate),
+        GroupingStrategyType.Monthly or _ => new MonthlyGroupingStrategy()
+    };
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using R3EServerRaceResult.Models.R3EServerResult;
+using R3EServerRaceResult.Services.ChampionshipGrouping;
 using R3EServerRaceResult.Settings;
 using System.Net;
 using System.Text.Json;
@@ -9,11 +10,12 @@ namespace R3EServerRaceResult.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class R3EResultController(ILogger<R3EResultController> logger, IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings) : ControllerBase
+    public class R3EResultController(ILogger<R3EResultController> logger, IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings, IChampionshipGroupingStrategy groupingStrategy) : ControllerBase
     {
         private readonly ChampionshipAppSettings settings = settings.Value;
         private readonly FileStorageAppSettings fileStorageAppSettings = fileStorageAppSettings.Value;
         private readonly ILogger<R3EResultController> logger = logger;
+        private readonly IChampionshipGroupingStrategy groupingStrategy = groupingStrategy;
 
         private readonly JsonSerializerOptions jsonSerializerOption = new()
         {
@@ -44,7 +46,7 @@ namespace R3EServerRaceResult.Controllers
             }
 
             var fileName = ResultFileName(result);
-            var webResultPath = WebResultPath(result);
+            var webResultPath = groupingStrategy.GetStoragePath(result);
             var diskPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, webResultPath);
             var diskRaceResultPath = Path.Combine(diskPath, fileName);
 
@@ -103,13 +105,13 @@ namespace R3EServerRaceResult.Controllers
                 ? new Models.SimResult.SimResult(settings)
                 : JsonSerializer.Deserialize<Models.SimResult.SimResult>(await System.IO.File.ReadAllTextAsync(summaryFilePath))!;
 
-            if (!simResult.Results.Any(x => x.Name == EventName(r3EResult.StartTime)))
+            var eventName = groupingStrategy.GetEventName(r3EResult);
+            if (!simResult.Results.Any(x => x.Name == eventName))
             {
-                var eventName = EventName(r3EResult.StartTime);
                 simResult.Results.Add(new Models.SimResult.Result() { Name = eventName });
                 logger.LogInformation("New race event added to Sim result summary: {EventName}", eventName);
             }
-            var result = simResult.Results.Last();
+            var result = simResult.Results.First(x => x.Name == eventName);
             var logPath = LogPath(settings.WebServer, resultFilePath);
             if (result.Log.Contains(logPath))
             {
@@ -136,7 +138,7 @@ namespace R3EServerRaceResult.Controllers
             if (!System.IO.File.Exists(summaryFilePath)) return;
             var simResult = JsonSerializer.Deserialize<Models.SimResult.SimResult>(await System.IO.File.ReadAllTextAsync(summaryFilePath));
             if (simResult == null) return;
-            var logPath = LogPath(settings.WebServer, Path.Combine(WebResultPath(r3EResult), ResultFileName(r3EResult)));
+            var logPath = LogPath(settings.WebServer, Path.Combine(groupingStrategy.GetStoragePath(r3EResult), ResultFileName(r3EResult)));
             var result = simResult.Results.FirstOrDefault(x => x.Log.Contains(logPath));
             if (result == null) return;
 
