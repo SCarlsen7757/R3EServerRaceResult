@@ -7,6 +7,8 @@ using System.Web;
 
 namespace R3EServerRaceResult.Controllers
 {
+    [Route("api/summaries")]
+    [ApiController]
     public class SimResultController(ILogger<SimResultController> logger, IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings) : ControllerBase
     {
         private readonly ChampionshipAppSettings settings = settings.Value;
@@ -18,9 +20,9 @@ namespace R3EServerRaceResult.Controllers
             WriteIndented = true
         };
 
-        [HttpGet("ResultUrl")]
+        [HttpGet("urls")]
         [ProducesResponseType(typeof(IList<string>), (int)HttpStatusCode.OK)]
-        public IActionResult SimResultUrl()
+        public IActionResult GetUrls()
         {
             List<string> urls = [];
 
@@ -36,20 +38,28 @@ namespace R3EServerRaceResult.Controllers
                     urls.Add(url);
                 }
             }
-            logger.LogInformation("Sim result URLs: [{Urls}]", string.Join(", ", urls));
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Sim result URLs: [{Urls}]", string.Join(", ", urls));
+            }
+
             return Ok(urls);
         }
 
-        [HttpGet("Config")]
+        [HttpGet("config")]
         [ProducesResponseType(typeof(Models.SimResult.Config), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> GetConfigJson(string summaryPath, string? eventName)
+        public async Task<IActionResult> GetConfig([FromQuery] string summaryPath)
         {
             var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
             if (!System.IO.File.Exists(diskSummaryPath))
             {
-                logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
+                }
+
                 return NotFound("Sim result summary file not found.");
             }
 
@@ -57,35 +67,71 @@ namespace R3EServerRaceResult.Controllers
             var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
             if (summary == null)
             {
-                logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                }
                 return BadRequest("Invalid JSON format!");
             }
 
-            if (string.IsNullOrWhiteSpace(eventName))
+            return Ok(summary.Config);
+        }
+
+        [HttpGet("events/{eventName}/config")]
+        [ProducesResponseType(typeof(Models.SimResult.Config), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> GetEventConfig([FromQuery] string summaryPath, string eventName)
+        {
+            var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
+            if (!System.IO.File.Exists(diskSummaryPath))
             {
-                return Ok(summary.Config);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
+                }
+
+                return NotFound("Sim result summary file not found.");
+            }
+
+            var summaryJson = await System.IO.File.ReadAllTextAsync(diskSummaryPath);
+            var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
+            if (summary == null)
+            {
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                }
+                return BadRequest("Invalid JSON format!");
             }
 
             var result = summary.Results.FirstOrDefault(x => x.Name == eventName);
             if (result == null)
             {
-                logger.LogInformation("No Sim result event found for name: {ResultName} in Summary: {SummaryName}", eventName, summaryPath);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("No Sim result event found for name: {ResultName} in Summary: {SummaryName}", eventName, summaryPath);
+                }
+
                 return NotFound("No Sim result event found.");
             }
 
             return Ok(result.Config);
         }
 
-        [HttpPut("Config")]
+        [HttpPut("config")]
         [ProducesResponseType(typeof(Models.SimResult.SimResult), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> UpdateConfigJson([FromBody] Models.SimResult.Config? config, string summaryPath, string? eventName)
+        public async Task<IActionResult> UpdateConfig([FromQuery] string summaryPath, [FromBody] Models.SimResult.Config? config)
         {
             var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
             if (!System.IO.File.Exists(diskSummaryPath))
             {
-                logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
+                }
                 return NotFound("Sim result summary file not found.");
             }
 
@@ -93,45 +139,43 @@ namespace R3EServerRaceResult.Controllers
             var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
             if (summary == null)
             {
-                logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                }
                 return BadRequest("Invalid JSON format!");
             }
 
-            if (string.IsNullOrWhiteSpace(eventName))
+            summary.Config = config;
+            if (logger.IsEnabled(LogLevel.Information))
             {
-                summary.Config = config;
                 logger.LogInformation("Updated global config object in summary file: {SummaryPath}", summaryPath);
-            }
-            else
-            {
-                var result = summary.Results.FirstOrDefault(x => x.Name == eventName);
-                if (result == null)
-                {
-                    logger.LogInformation("No Sim result event found for name: {EventName} in Summary: {SummaryName}", eventName, summaryPath);
-                    return NotFound("No R3E result found.");
-                }
-
-                result.Config = config;
-                logger.LogInformation("Updated config object for event: {EventName} in summary file: {SummaryPath}", eventName, summaryPath);
             }
 
             using FileStream fileStream = System.IO.File.Create(diskSummaryPath);
             await JsonSerializer.SerializeAsync(fileStream, summary, jsonSerializerOption);
-            logger.LogDebug("Save summary file back to the disk: {SummaryPath}", summaryPath);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Save summary file back to the disk: {SummaryPath}", summaryPath);
+            }
 
             return Ok(summary);
         }
 
-        [HttpPatch("Config")]
+        [HttpPut("events/{eventName}/config")]
         [ProducesResponseType(typeof(Models.SimResult.SimResult), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> PatchConfigJson([FromBody] Models.SimResult.Config config, string summaryPath, string? eventName)
+        public async Task<IActionResult> UpdateEventConfig([FromQuery] string summaryPath, string eventName, [FromBody] Models.SimResult.Config? config)
         {
             var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
             if (!System.IO.File.Exists(diskSummaryPath))
             {
-                logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
+                }
+
                 return NotFound("Sim result summary file not found.");
             }
 
@@ -139,46 +183,151 @@ namespace R3EServerRaceResult.Controllers
             var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
             if (summary == null)
             {
-                logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                }
+
                 return BadRequest("Invalid JSON format!");
             }
 
-            if (string.IsNullOrWhiteSpace(eventName))
+            var result = summary.Results.FirstOrDefault(x => x.Name == eventName);
+            if (result == null)
             {
-                if (summary.Config == null)
+                if (logger.IsEnabled(LogLevel.Information))
                 {
-                    summary.Config = config;
+                    logger.LogInformation("No Sim result event found for name: {EventName} in Summary: {SummaryName}", eventName, summaryPath);
                 }
-                else
+                return NotFound("No R3E result found.");
+            }
+
+            result.Config = config;
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Updated config object for event: {EventName} in summary file: {SummaryPath}", eventName, summaryPath);
+            }
+
+            using FileStream fileStream = System.IO.File.Create(diskSummaryPath);
+            await JsonSerializer.SerializeAsync(fileStream, summary, jsonSerializerOption);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Save summary file back to the disk: {SummaryPath}", summaryPath);
+            }
+
+            return Ok(summary);
+        }
+
+        [HttpPatch("config")]
+        [ProducesResponseType(typeof(Models.SimResult.SimResult), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> PatchConfig([FromQuery] string summaryPath, [FromBody] Models.SimResult.Config config)
+        {
+            var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
+            if (!System.IO.File.Exists(diskSummaryPath))
+            {
+                if (logger.IsEnabled(LogLevel.Information))
                 {
-                    summary.Config.PatchWith(config);
+                    logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
                 }
-                logger.LogInformation("Updated global config object in summary file: {SummaryPath}", summaryPath);
+
+                return NotFound("Sim result summary file not found.");
+            }
+
+            var summaryJson = await System.IO.File.ReadAllTextAsync(diskSummaryPath);
+            var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
+            if (summary == null)
+            {
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                }
+                return BadRequest("Invalid JSON format!");
+            }
+
+            if (summary.Config == null)
+            {
+                summary.Config = config;
             }
             else
             {
-                var result = summary.Results.FirstOrDefault(x => x.Name == eventName);
-                if (result == null)
-                {
-                    logger.LogInformation("No Sim result event found for name: {EventName} in Summary: {SummaryName}", eventName, summaryPath);
-                    return NotFound("No R3E result found.");
-                }
-
-                if (result.Config == null)
-                {
-                    result.Config = config;
-                }
-                else
-                {
-                    result.Config.PatchWith(config);
-                }
-                logger.LogInformation("Updated config object for event: {EventName} in summary file: {SummaryPath}", eventName, summaryPath);
+                summary.Config.PatchWith(config);
             }
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Updated global config object in summary file: {SummaryPath}", summaryPath);
+            }
+
             using FileStream fileStream = System.IO.File.Create(diskSummaryPath);
             await JsonSerializer.SerializeAsync(fileStream, summary, jsonSerializerOption);
-            logger.LogDebug("Save summary file back to the disk: {SummaryPath}", summaryPath);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Save summary file back to the disk: {SummaryPath}", summaryPath);
+            }
 
-            return Ok();
+            return Ok(summary);
+        }
+
+        [HttpPatch("events/{eventName}/config")]
+        [ProducesResponseType(typeof(Models.SimResult.SimResult), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> PatchEventConfig([FromQuery] string summaryPath, string eventName, [FromBody] Models.SimResult.Config config)
+        {
+            var diskSummaryPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, summaryPath);
+            if (!System.IO.File.Exists(diskSummaryPath))
+            {
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Sim result summary file not found: {SummaryPath}", summaryPath);
+                }
+                return NotFound("Sim result summary file not found.");
+            }
+
+            var summaryJson = await System.IO.File.ReadAllTextAsync(diskSummaryPath);
+            var summary = JsonSerializer.Deserialize<Models.SimResult.SimResult>(summaryJson);
+            if (summary == null)
+            {
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Invalid JSON format in summary file: {SummaryPath}", summaryPath);
+                }
+
+                return BadRequest("Invalid JSON format!");
+            }
+
+            var result = summary.Results.FirstOrDefault(x => x.Name == eventName);
+            if (result == null)
+            {
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("No Sim result event found for name: {EventName} in Summary: {SummaryName}", eventName, summaryPath);
+                }
+
+                return NotFound("No R3E result found.");
+            }
+
+            if (result.Config == null)
+            {
+                result.Config = config;
+            }
+            else
+            {
+                result.Config.PatchWith(config);
+            }
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Updated config object for event: {EventName} in summary file: {SummaryPath}", eventName, summaryPath);
+            }
+
+            using FileStream fileStream = System.IO.File.Create(diskSummaryPath);
+            await JsonSerializer.SerializeAsync(fileStream, summary, jsonSerializerOption);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Save summary file back to the disk: {SummaryPath}", summaryPath);
+            }
+
+            return Ok(summary);
         }
     }
 }

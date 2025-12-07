@@ -8,7 +8,7 @@ namespace R3EServerRaceResult.Models
         public override List<TimeSpan> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             // Deserialize the array of TimeSpan (in milliseconds) into a List<TimeSpan>
-            var list = JsonSerializer.Deserialize<List<long>>(ref reader, options);
+            var list = JsonSerializer.Deserialize<List<long>>(ref reader, options) ?? [];
             var timeSpans = new List<TimeSpan>();
 
             // Convert each millisecond value into a TimeSpan
