@@ -274,7 +274,9 @@ namespace R3EServerRaceResult.Controllers
             if (!System.IO.File.Exists(summaryFilePath)) return;
             var simResult = JsonSerializer.Deserialize<Models.SimResult.SimResult>(await System.IO.File.ReadAllTextAsync(summaryFilePath));
             if (simResult == null) return;
-            var logPath = LogPath(settings.WebServer, Path.Combine(groupingStrategy.GetStoragePath(r3EResult), ResultFileName(r3EResult)));
+
+            var resultStoragePath = GetResultStoragePath(r3EResult);
+            var logPath = LogPath(settings.WebServer, Path.Combine(resultStoragePath, ResultFileName(r3EResult)));
             var result = simResult.Results.FirstOrDefault(x => x.Log.Contains(logPath));
             if (result == null) return;
 
@@ -294,11 +296,6 @@ namespace R3EServerRaceResult.Controllers
             await JsonSerializer.SerializeAsync(fileStream, simResult, jsonSerializerOption);
         }
 
-        private static string EventName(DateTime dateTime)
-        {
-            return $"{dateTime:MMMM} Race {dateTime:yyyy}";
-        }
-
         private static string LogPath(string webServer, string resultPath)
         {
             return $"{webServer}/{resultPath}";
@@ -306,7 +303,8 @@ namespace R3EServerRaceResult.Controllers
 
         private string SummaryFilePath(Result result)
         {
-            return Path.Combine(fileStorageAppSettings.MountedVolumePath, result.StartTime.Year.ToString(), $"{fileStorageAppSettings.ResultFileName}.json");
+            var championshipFolder = groupingStrategy.GetChampionshipFolder(result);
+            return Path.Combine(fileStorageAppSettings.MountedVolumePath, championshipFolder, $"{fileStorageAppSettings.ResultFileName}.json");
         }
 
         private static string ResultFileName(Result result)
@@ -314,16 +312,11 @@ namespace R3EServerRaceResult.Controllers
             return $"result_{result.StartTime:HHmm_MMddyyyy}.json";
         }
 
-        private static string WebResultPath(Result result)
-        {
-            return Path.Combine(result.StartTime.Year.ToString(), result.StartTime.Month.ToString());
-        }
-
         private bool ResultFileExists(Result result)
         {
             var fileName = ResultFileName(result);
-            var webResultPath = groupingStrategy.GetStoragePath(result);
-            var diskPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, webResultPath);
+            var resultStoragePath = GetResultStoragePath(result);
+            var diskPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, resultStoragePath);
             var diskRaceResultPath = Path.Combine(diskPath, fileName);
             return System.IO.File.Exists(diskRaceResultPath);
         }
@@ -331,8 +324,8 @@ namespace R3EServerRaceResult.Controllers
         private async Task<(bool success, string? errorMessage)> ProcessSingleResult(Result result)
         {
             var fileName = ResultFileName(result);
-            var webResultPath = groupingStrategy.GetStoragePath(result);
-            var diskPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, webResultPath);
+            var resultStoragePath = GetResultStoragePath(result);
+            var diskPath = Path.Combine(fileStorageAppSettings.MountedVolumePath, resultStoragePath);
             var diskRaceResultPath = Path.Combine(diskPath, fileName);
 
             try
@@ -344,7 +337,7 @@ namespace R3EServerRaceResult.Controllers
                     logger.LogInformation("File saved: {FileName}", diskRaceResultPath);
                 }
 
-                await MakeSimResultSummary(Path.Combine(webResultPath, fileName), result);
+                await MakeSimResultSummary(Path.Combine(resultStoragePath, fileName), result);
                 return (true, null);
             }
             catch (Exception ex)
@@ -356,6 +349,11 @@ namespace R3EServerRaceResult.Controllers
 
                 return (false, ex.Message);
             }
+        }
+
+        private static string GetResultStoragePath(Result result)
+        {
+            return Path.Combine(result.StartTime.Year.ToString(), result.StartTime.Month.ToString());
         }
     }
 }

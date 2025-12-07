@@ -14,9 +14,9 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
             return $"{raceResult.StartTime:MMMM} Race {raceResult.StartTime:yyyy}";
         }
 
-        public string GetStoragePath(Result raceResult)
+        public string GetChampionshipFolder(Result raceResult)
         {
-            return Path.Combine(raceResult.StartTime.Year.ToString(), raceResult.StartTime.Month.ToString());
+            return raceResult.StartTime.Year.ToString();
         }
     }
 }

@@ -6,6 +6,6 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
     {
         string GetChampionshipKey(Result raceResult);
         string GetEventName(Result raceResult);
-        string GetStoragePath(Result raceResult);
+        string GetChampionshipFolder(Result raceResult);
     }
 }

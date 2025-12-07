@@ -50,7 +50,15 @@ builder.Services.Configure<FileStorageAppSettings>(options =>
     }
 });
 
-// Register Championship Grouping Strategy
+var fileStorageConfig = builder.Configuration.GetSection("FileStorage").Get<FileStorageAppSettings>() ?? new FileStorageAppSettings();
+
+builder.Services.AddSingleton(sp =>
+{
+    var fileStorageSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
+    var logger = sp.GetRequiredService<ILogger<R3EServerRaceResult.Services.ChampionshipConfigurationStore>>();
+    return new R3EServerRaceResult.Services.ChampionshipConfigurationStore(fileStorageSettings.MountedVolumePath, logger);
+});
+
 builder.Services.AddSingleton<IChampionshipGroupingStrategy>(sp =>
 {
     var fileStorageSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
@@ -59,7 +67,11 @@ builder.Services.AddSingleton<IChampionshipGroupingStrategy>(sp =>
     {
         GroupingStrategyType.RaceCount => new RaceCountGroupingStrategy(
             fileStorageSettings.RacesPerChampionship,
-            fileStorageSettings.ChampionshipStartDate),
+            fileStorageSettings.ChampionshipStartDate,
+            fileStorageSettings.MountedVolumePath),
+        GroupingStrategyType.Custom => new CustomChampionshipGroupingStrategy(
+            sp.GetRequiredService<R3EServerRaceResult.Services.ChampionshipConfigurationStore>(),
+            sp.GetRequiredService<ILogger<CustomChampionshipGroupingStrategy>>()),
         GroupingStrategyType.Monthly or _ => new MonthlyGroupingStrategy()
     };
 });
