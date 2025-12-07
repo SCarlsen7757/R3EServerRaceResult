@@ -1,9 +1,9 @@
 services:
   r3eserverraceresult:
-    container_name: R3EServerRaceResult
+    container_name: r3e-server-race-result
     image: ${DOCKER_REGISTRY-}r3eserverraceresult
     build:
-      context: R3EServerRaceResult
+      context: r3e-server-race-result
       dockerfile: Dockerfile
     ports:
       - "8251:8080"
@@ -32,18 +32,18 @@ services:
       - FileStorage__RacesPerChampionship=4
       # - FileStorage__ChampionshipStartDate=2025-01-15T00:00:00
     volumes:
-      - SimResultsData:/app/data
+      - data:/app/data
     user: "0" # run as root
 
   staticserver:
     image: nginx:latest
-    container_name: SimResultsWebServer
+    container_name: sim-results-web-server
     ports:
       - "8252:80"
     volumes:
-      - SimResultsData:/usr/share/nginx/html:ro  # serve static content from volume
+      - data:/usr/share/nginx/html:ro  # serve static content from volume
       - ./nginx.conf:/etc/nginx/nginx.conf:ro   # Mount the config
     restart: always
 
 volumes:
-  SimResultsData:
+  data:
