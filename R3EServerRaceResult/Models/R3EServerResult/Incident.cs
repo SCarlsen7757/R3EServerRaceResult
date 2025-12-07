@@ -2,15 +2,9 @@
 
 namespace R3EServerRaceResult.Models.R3EServerResult
 {
-    public class Incident
-    {
-        [JsonPropertyName("Type")]
-        public int Type { get; set; }
-
-        [JsonPropertyName("Points")]
-        public int Points { get; set; }
-
-        [JsonPropertyName("OtherUserId")]
-        public int OtherUserId { get; set; }
-    }
+    public record Incident(
+        [property: JsonPropertyName("Type")] int Type,
+        [property: JsonPropertyName("Points")] int Points,
+        [property: JsonPropertyName("OtherUserId")] int OtherUserId
+    );
 }

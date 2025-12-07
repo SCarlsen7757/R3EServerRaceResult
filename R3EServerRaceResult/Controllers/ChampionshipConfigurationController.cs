@@ -29,18 +29,19 @@ namespace R3EServerRaceResult.Controllers
         /// Get all championship configurations
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(List<ChampionshipConfiguration>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(List<ChampionshipConfigurationResponse>), (int)HttpStatusCode.OK)]
         public IActionResult GetAll([FromQuery] bool includeExpired = true)
         {
             var configurations = configStore.GetAllConfigurations(includeExpired);
-            return Ok(configurations);
+            var responses = configurations.Select(MapToResponse).ToList();
+            return Ok(responses);
         }
 
         /// <summary>
         /// Get a specific championship configuration by ID
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ChampionshipConfiguration), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         public IActionResult GetById(string id)
         {
@@ -50,21 +51,21 @@ namespace R3EServerRaceResult.Controllers
                 return NotFound($"Championship configuration with ID '{id}' not found");
             }
 
-            return Ok(config);
+            return Ok(MapToResponse(config));
         }
 
         /// <summary>
         /// Create a new championship configuration
         /// </summary>
         [HttpPost]
-        [ProducesResponseType(typeof(ChampionshipConfiguration), (int)HttpStatusCode.Created)]
+        [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.Created)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
-        public IActionResult Create([FromBody] ChampionshipConfiguration config)
+        public IActionResult Create([FromBody] CreateChampionshipConfigurationRequest request)
         {
-            if (config == null)
+            if (request == null)
             {
-                return BadRequest("Championship configuration cannot be null");
+                return BadRequest("Championship configuration request cannot be null");
             }
 
             // Check if Custom strategy is active
@@ -84,9 +85,16 @@ namespace R3EServerRaceResult.Controllers
                 });
             }
 
-            // Generate new ID
-            config.Id = Guid.NewGuid().ToString();
-            config.CreatedAt = DateTime.UtcNow;
+            // Create configuration entity from request
+            var config = new ChampionshipConfiguration
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = request.Name,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
 
             var (success, errorMessage) = configStore.AddConfiguration(config);
             if (!success)
@@ -103,22 +111,22 @@ namespace R3EServerRaceResult.Controllers
                 logger.LogInformation("Championship configuration created: {Id} - {Name}", config.Id, config.Name);
             }
 
-            return CreatedAtAction(nameof(GetById), new { id = config.Id }, config);
+            return CreatedAtAction(nameof(GetById), new { id = config.Id }, MapToResponse(config));
         }
 
         /// <summary>
         /// Update an existing championship configuration
         /// </summary>
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(ChampionshipConfiguration), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
-        public IActionResult Update(string id, [FromBody] ChampionshipConfiguration config)
+        public IActionResult Update(string id, [FromBody] UpdateChampionshipConfigurationRequest request)
         {
-            if (config == null)
+            if (request == null)
             {
-                return BadRequest("Championship configuration cannot be null");
+                return BadRequest("Championship configuration request cannot be null");
             }
 
             // Check if Custom strategy is active
@@ -144,8 +152,16 @@ namespace R3EServerRaceResult.Controllers
                 return NotFound($"Championship configuration with ID '{id}' not found");
             }
 
-            config.Id = id;
-            config.CreatedAt = existing.CreatedAt;
+            // Update only allowed fields
+            var config = new ChampionshipConfiguration
+            {
+                Id = existing.Id,
+                Name = request.Name,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
+                IsActive = request.IsActive,
+                CreatedAt = existing.CreatedAt
+            };
 
             var (success, errorMessage) = configStore.UpdateConfiguration(id, config);
             if (!success)
@@ -162,7 +178,7 @@ namespace R3EServerRaceResult.Controllers
                 logger.LogInformation("Championship configuration updated: {Id} - {Name}", id, config.Name);
             }
 
-            return Ok(config);
+            return Ok(MapToResponse(config));
         }
 
         /// <summary>
@@ -203,6 +219,19 @@ namespace R3EServerRaceResult.Controllers
             }
 
             return NoContent();
+        }
+
+        private static ChampionshipConfigurationResponse MapToResponse(ChampionshipConfiguration config)
+        {
+            return new ChampionshipConfigurationResponse(
+                Id: config.Id,
+                Name: config.Name,
+                StartDate: config.StartDate,
+                EndDate: config.EndDate,
+                IsActive: config.IsActive,
+                CreatedAt: config.CreatedAt,
+                IsExpired: config.IsExpired
+            );
         }
     }
 }
