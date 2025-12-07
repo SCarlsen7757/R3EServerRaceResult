@@ -3,7 +3,7 @@ services:
     container_name: r3e-server-race-result
     image: ${DOCKER_REGISTRY-}r3eserverraceresult
     build:
-      context: r3e-server-race-result
+      context: R3EServerRaceResult
       dockerfile: Dockerfile
     ports:
       - "8251:8080"
@@ -28,7 +28,7 @@ services:
       - Championship__PointSystem__FastestLapPoints=1
       - FileStorage__MountedVolumePath=/app/data
       - FileStorage__ResultFileName=summary
-      - FileStorage__GroupingStrategy=Monthly
+      - FileStorage__GroupingStrategy=Custom # Options: Monthly, RaceCount, Custom
       - FileStorage__RacesPerChampionship=4
       # - FileStorage__ChampionshipStartDate=2025-01-15T00:00:00
     volumes:
