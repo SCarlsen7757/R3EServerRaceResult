@@ -47,7 +47,7 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
         {
             var year = raceResult.StartTime.Year;
             var championshipNumber = GetChampionshipNumber(raceResult.StartTime);
-            return Path.Combine(year.ToString(), "race-count-championship", $"champ{championshipNumber}");
+            return Path.Combine(year.ToString(), $"champ{championshipNumber}");
         }
 
         private int GetChampionshipNumber(DateTime raceDate)

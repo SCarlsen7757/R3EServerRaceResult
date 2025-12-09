@@ -7,18 +7,18 @@ using System.Net;
 
 namespace R3EServerRaceResult.Controllers
 {
-    [Route("api/championships/config")]
+    [Route("api/championships")]
     [ApiController]
-    public class ChampionshipConfigurationController : ControllerBase
+    public class ChampionshipController : ControllerBase
     {
         private readonly ChampionshipConfigurationStore configStore;
         private readonly FileStorageAppSettings fileStorageSettings;
-        private readonly ILogger<ChampionshipConfigurationController> logger;
+        private readonly ILogger<ChampionshipController> logger;
 
-        public ChampionshipConfigurationController(
+        public ChampionshipController(
             ChampionshipConfigurationStore configStore,
             IOptions<FileStorageAppSettings> fileStorageSettings,
-            ILogger<ChampionshipConfigurationController> logger)
+            ILogger<ChampionshipController> logger)
         {
             this.configStore = configStore;
             this.fileStorageSettings = fileStorageSettings.Value;
@@ -26,9 +26,19 @@ namespace R3EServerRaceResult.Controllers
         }
 
         /// <summary>
+        /// Get current grouping strategy
+        /// </summary>
+        [HttpGet("strategy")]
+        [ProducesResponseType(typeof(GroupingStrategyType), (int)HttpStatusCode.OK)]
+        public IActionResult GetStrategy()
+        {
+            return Ok(fileStorageSettings.GroupingStrategy.ToString());
+        }
+
+        /// <summary>
         /// Get all championship configurations
         /// </summary>
-        [HttpGet]
+        [HttpGet("configurations")]
         [ProducesResponseType(typeof(List<ChampionshipConfigurationResponse>), (int)HttpStatusCode.OK)]
         public IActionResult GetAll([FromQuery] bool includeExpired = true)
         {
@@ -40,7 +50,7 @@ namespace R3EServerRaceResult.Controllers
         /// <summary>
         /// Get a specific championship configuration by ID
         /// </summary>
-        [HttpGet("{id}")]
+        [HttpGet("configurations/{id}")]
         [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         public IActionResult GetById(string id)
@@ -57,7 +67,7 @@ namespace R3EServerRaceResult.Controllers
         /// <summary>
         /// Create a new championship configuration
         /// </summary>
-        [HttpPost]
+        [HttpPost("configurations")]
         [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.Created)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
@@ -117,7 +127,7 @@ namespace R3EServerRaceResult.Controllers
         /// <summary>
         /// Update an existing championship configuration
         /// </summary>
-        [HttpPut("{id}")]
+        [HttpPut("configurations/{id}")]
         [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
@@ -184,7 +194,7 @@ namespace R3EServerRaceResult.Controllers
         /// <summary>
         /// Delete a championship configuration
         /// </summary>
-        [HttpDelete("{id}")]
+        [HttpDelete("configurations/{id}")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]

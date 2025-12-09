@@ -303,8 +303,13 @@ namespace R3EServerRaceResult.Controllers
 
         private string SummaryFilePath(Result result)
         {
-            var championshipFolder = groupingStrategy.GetChampionshipFolder(result);
-            return Path.Combine(fileStorageAppSettings.MountedVolumePath, championshipFolder, $"{fileStorageAppSettings.ResultFileName}.json");
+            var championshipFolder = Path.Combine(fileStorageAppSettings.MountedVolumePath, groupingStrategy.GetChampionshipFolder(result));
+            if (!Directory.Exists(championshipFolder))
+            {
+                Directory.CreateDirectory(championshipFolder);
+            }
+
+            return Path.Combine(championshipFolder, $"{fileStorageAppSettings.ResultFileName}.json");
         }
 
         private static string ResultFileName(Result result)
