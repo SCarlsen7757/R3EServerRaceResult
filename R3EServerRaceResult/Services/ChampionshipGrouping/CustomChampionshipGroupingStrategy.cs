@@ -28,7 +28,7 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
             return config.Name;
         }
 
-        public string GetChampionshipFolder(Result raceResult)
+        public string GetSummaryFolder(Result raceResult)
         {
             var config = GetOrCreateConfiguration(raceResult);
 

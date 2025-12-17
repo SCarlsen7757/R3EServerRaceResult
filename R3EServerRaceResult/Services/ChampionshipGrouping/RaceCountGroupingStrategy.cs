@@ -46,7 +46,7 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
             return $"Championship {championshipNumber} - Race {raceNumber} ({year})";
         }
 
-        public string GetChampionshipFolder(Result raceResult)
+        public string GetSummaryFolder(Result raceResult)
         {
             var year = raceResult.StartTime.Year;
             var championshipNumber = GetChampionshipNumber(raceResult.StartTime);
