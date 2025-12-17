@@ -98,12 +98,10 @@ namespace R3EServerRaceResult.Services
                 }
 
                 // Check for overlaps with other configurations (excluding self)
-                foreach (var config in configurations.Where(c => c.IsActive && c.Id != id))
+                var overlappingConfigs = configurations.Where(c => c.IsActive && c.Id != id && updatedConfig.OverlapsWith(c));
+                foreach (var config in overlappingConfigs)
                 {
-                    if (updatedConfig.OverlapsWith(config))
-                    {
-                        return (false, $"Championship period overlaps with existing championship '{config.Name}' ({config.StartDate} to {config.EndDate})");
-                    }
+                    return (false, $"Championship period overlaps with existing championship '{config.Name}' ({config.StartDate} to {config.EndDate})");
                 }
 
                 existing.Name = updatedConfig.Name;
