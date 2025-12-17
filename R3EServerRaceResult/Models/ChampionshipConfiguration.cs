@@ -47,7 +47,7 @@ namespace R3EServerRaceResult.Models
                 return (false, "Championship name is required");
             }
 
-            if (StartDate >= EndDate)
+            if (StartDate > EndDate)
             {
                 return (false, "Start date must be before end date");
             }
