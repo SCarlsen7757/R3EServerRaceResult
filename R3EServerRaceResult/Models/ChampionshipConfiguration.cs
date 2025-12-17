@@ -30,8 +30,8 @@ namespace R3EServerRaceResult.Models
             if (other == null) return false;
             if (Id == other.Id) return false;
 
-            // Check if periods overlap
-            return StartDate < other.EndDate && EndDate > other.StartDate;
+            // Check if periods overlap (inclusive of boundary dates)
+            return StartDate <= other.EndDate && EndDate >= other.StartDate;
         }
 
         public bool ContainsDate(DateTime date)
