@@ -96,6 +96,7 @@ Configuration can be set via `appsettings.json` or environment variables.
 **Grouping Strategies:**
 - `Monthly`: Groups races by calendar month (default)
 - `RaceCount`: Groups races by a fixed number per championship (requires `RacesPerChampionship` and optionally `ChampionshipStartDate`)
+- `Custom`: Allows advanced grouping by specifying custom championship boundaries, such as explicit start/end dates or other criteria. Requires additional configuration (see `CustomChampionshipGroupingStrategy.cs` and relevant settings).
 
 ### Running with Docker Compose
 
