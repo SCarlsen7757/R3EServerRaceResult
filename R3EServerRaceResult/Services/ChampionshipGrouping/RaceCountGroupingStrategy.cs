@@ -36,9 +36,12 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
         {
             var year = raceResult.StartTime.Year;
             var championshipNumber = GetChampionshipNumber(raceResult.StartTime);
-            var raceNumber = GetRaceNumber(year);
-
-            IncrementRaceCount(year);
+            int raceNumber;
+            lock (@lock)
+            {
+                raceNumber = GetRaceNumber(year);
+                IncrementRaceCount(year);
+            }
 
             return $"Championship {championshipNumber} - Race {raceNumber} ({year})";
         }
