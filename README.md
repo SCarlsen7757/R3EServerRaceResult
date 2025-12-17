@@ -19,7 +19,7 @@ A .NET 10 web application that processes RaceRoom Racing Experience (R3E) race r
 ## Architecture
 
 The application is built with:
-- **ASP.NET Core 10** - Web API framework
+- **ASP.NET Core** - Web API framework
 - **Swagger/OpenAPI** - API documentation and testing
 - **Docker** - Containerization
 - **NGINX** - Static file server for race results
