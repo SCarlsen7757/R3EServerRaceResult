@@ -193,6 +193,18 @@ namespace R3EServerRaceResult.Controllers
             }
             catch (JsonException)
             {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("JSON deserialization error for file: {FileName}", file.FileName);
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                if (logger.IsEnabled(LogLevel.Critical))
+                {
+                    logger.LogCritical(ex, "Unexpected error deserializing JSON file: {FileName}", file.FileName);
+                }
                 return null;
             }
         }
