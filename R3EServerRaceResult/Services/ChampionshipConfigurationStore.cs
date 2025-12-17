@@ -37,7 +37,7 @@ namespace R3EServerRaceResult.Services
                 }
 
                 configurations.Add(config);
-                SaveConfigurations();
+                SaveConfigurations(); //TODO: Rework this to use a SQLLite DB
 
                 if (logger.IsEnabled(LogLevel.Information))
                 {
