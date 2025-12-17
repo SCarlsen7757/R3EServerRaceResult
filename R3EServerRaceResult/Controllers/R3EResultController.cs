@@ -243,6 +243,7 @@ namespace R3EServerRaceResult.Controllers
                 : JsonSerializer.Deserialize<Models.SimResult.SimResult>(await System.IO.File.ReadAllTextAsync(summaryFilePath))!;
 
             var eventName = groupingStrategy.GetEventName(r3EResult);
+
             if (!simResult.Results.Any(x => x.Name == eventName))
             {
                 simResult.Results.Add(new Models.SimResult.Result() { Name = eventName });
@@ -251,7 +252,15 @@ namespace R3EServerRaceResult.Controllers
                     logger.LogInformation("New race event added to Sim result summary: {EventName}", eventName);
                 }
             }
-            var result = simResult.Results.First(x => x.Name == eventName);
+            var result = simResult.Results.FirstOrDefault(x => x.Name == eventName);
+            if (result is null)
+            {
+                if (logger.IsEnabled(LogLevel.Critical))
+                {
+                    logger.LogCritical("Failed to find or create result entry for event: {EventName}", eventName);
+                }
+                return;
+            }
             var logPath = LogPath(settings.WebServer, resultFilePath);
             if (result.Log.Contains(logPath))
             {
