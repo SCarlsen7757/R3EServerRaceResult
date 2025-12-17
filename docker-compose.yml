@@ -30,7 +30,7 @@ services:
       - FileStorage__ResultFileName=summary
       - FileStorage__GroupingStrategy=Custom # Options: Monthly, RaceCount, Custom
       - FileStorage__RacesPerChampionship=4
-      # - FileStorage__ChampionshipStartDate=2025-01-15T00:00:00
+      # - FileStorage__ChampionshipStartDate=2026-06-25T00:00:00
     volumes:
       - data:/app/data
     user: "0" # run as root
