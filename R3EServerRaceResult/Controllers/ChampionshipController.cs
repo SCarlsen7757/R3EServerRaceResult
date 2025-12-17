@@ -78,22 +78,8 @@ namespace R3EServerRaceResult.Controllers
                 return BadRequest("Championship configuration request cannot be null");
             }
 
-            // Check if Custom strategy is active
-            if (fileStorageSettings.GroupingStrategy != GroupingStrategyType.Custom)
-            {
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning("Attempted to create championship configuration but Custom strategy is not active. Current strategy: {Strategy}",
-                        fileStorageSettings.GroupingStrategy);
-                }
-
-                return StatusCode((int)HttpStatusCode.NotImplemented, new
-                {
-                    error = "Custom championship strategy not active",
-                    message = $"Current grouping strategy is '{fileStorageSettings.GroupingStrategy}'. Please change the GroupingStrategy to 'Custom' in appsettings.json to use championship configurations.",
-                    currentStrategy = fileStorageSettings.GroupingStrategy.ToString()
-                });
-            }
+            var result = ValidateCustomStrategy();
+            if (result != null) return result;
 
             // Create configuration entity from request
             var config = new ChampionshipConfiguration
@@ -139,22 +125,8 @@ namespace R3EServerRaceResult.Controllers
                 return BadRequest("Championship configuration request cannot be null");
             }
 
-            // Check if Custom strategy is active
-            if (fileStorageSettings.GroupingStrategy != GroupingStrategyType.Custom)
-            {
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning("Attempted to update championship configuration but Custom strategy is not active. Current strategy: {Strategy}",
-                        fileStorageSettings.GroupingStrategy);
-                }
-
-                return StatusCode((int)HttpStatusCode.NotImplemented, new
-                {
-                    error = "Custom championship strategy not active",
-                    message = $"Current grouping strategy is '{fileStorageSettings.GroupingStrategy}'. Please change the GroupingStrategy to 'Custom' in appsettings.json to use championship configurations.",
-                    currentStrategy = fileStorageSettings.GroupingStrategy.ToString()
-                });
-            }
+            var result = ValidateCustomStrategy();
+            if (result != null) return result;
 
             var existing = configStore.GetConfigurationById(id);
             if (existing == null)
@@ -200,22 +172,8 @@ namespace R3EServerRaceResult.Controllers
         [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
         public IActionResult Delete(string id)
         {
-            // Check if Custom strategy is active
-            if (fileStorageSettings.GroupingStrategy != GroupingStrategyType.Custom)
-            {
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning("Attempted to delete championship configuration but Custom strategy is not active. Current strategy: {Strategy}",
-                        fileStorageSettings.GroupingStrategy);
-                }
-
-                return StatusCode((int)HttpStatusCode.NotImplemented, new
-                {
-                    error = "Custom championship strategy not active",
-                    message = $"Current grouping strategy is '{fileStorageSettings.GroupingStrategy}'. Please change the GroupingStrategy to 'Custom' in appsettings.json to use championship configurations.",
-                    currentStrategy = fileStorageSettings.GroupingStrategy.ToString()
-                });
-            }
+            var result = ValidateCustomStrategy();
+            if (result != null) return result;
 
             var success = configStore.RemoveConfiguration(id);
             if (!success)
@@ -229,6 +187,26 @@ namespace R3EServerRaceResult.Controllers
             }
 
             return NoContent();
+        }
+
+        private ObjectResult? ValidateCustomStrategy()
+        {
+            if (fileStorageSettings.GroupingStrategy != GroupingStrategyType.Custom)
+            {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Attempted to create championship configuration but Custom strategy is not active. Current strategy: {Strategy}",
+                        fileStorageSettings.GroupingStrategy);
+                }
+
+                return StatusCode((int)HttpStatusCode.NotImplemented, new
+                {
+                    error = "Custom championship strategy not active",
+                    message = $"Current grouping strategy is '{fileStorageSettings.GroupingStrategy}'. Please change the GroupingStrategy to 'Custom' in appsettings.json to use championship configurations.",
+                    currentStrategy = fileStorageSettings.GroupingStrategy.ToString()
+                });
+            }
+            return null;
         }
 
         private static ChampionshipConfigurationResponse MapToResponse(ChampionshipConfiguration config)
