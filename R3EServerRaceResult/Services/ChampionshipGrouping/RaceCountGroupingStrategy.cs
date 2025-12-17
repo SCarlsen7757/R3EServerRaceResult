@@ -115,11 +115,11 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
                 }
 
                 raceCountTracker[yearKey]++;
-                SaveState();
+                SaveState(); //TODO: Rework this to use a SQLLite DB
             }
         }
 
-        private void LoadState()
+        private void LoadState() //TODO: Rework this to use a SQLLite DB
         {
             lock (@lock)
             {
@@ -146,7 +146,7 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
             }
         }
 
-        private void SaveState()
+        private void SaveState() //TODO: Rework this to use a SQLLite DB
         {
             try
             {
