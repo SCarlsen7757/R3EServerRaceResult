@@ -50,8 +50,6 @@ builder.Services.Configure<FileStorageAppSettings>(options =>
     }
 });
 
-var fileStorageConfig = builder.Configuration.GetSection("FileStorage").Get<FileStorageAppSettings>() ?? new FileStorageAppSettings();
-
 builder.Services.AddSingleton(sp =>
 {
     var fileStorageSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
