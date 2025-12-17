@@ -31,6 +31,7 @@ R3EServerRaceResultApplication/
 ├── R3EServerRaceResult/
 │   ├── Controllers/
 │   │   ├── R3EResultController.cs       # Race result upload endpoints
+│   │   ├── ChampionshipController.cs    # Championship configuration (Custom grouping strategy)
 │   │   └── SimResultController.cs        # Summary config management
 │   ├── Models/
 │   │   ├── R3EServerResult/              # R3E result models
