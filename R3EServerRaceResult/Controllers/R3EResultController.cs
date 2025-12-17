@@ -238,9 +238,18 @@ namespace R3EServerRaceResult.Controllers
         {
             var summaryFilePath = SummaryFilePath(r3EResult);
 
-            Models.SimResult.SimResult simResult = (!System.IO.File.Exists(summaryFilePath))
+            var simResult = (!System.IO.File.Exists(summaryFilePath))
                 ? new Models.SimResult.SimResult(settings)
-                : JsonSerializer.Deserialize<Models.SimResult.SimResult>(await System.IO.File.ReadAllTextAsync(summaryFilePath))!;
+                : JsonSerializer.Deserialize<Models.SimResult.SimResult>(await System.IO.File.ReadAllTextAsync(summaryFilePath));
+
+            if (simResult == null)
+            {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Failed to deserialize Sim result summary: {SummaryFilePath}", summaryFilePath);
+                }
+                return;
+            }
 
             var eventName = groupingStrategy.GetEventName(r3EResult);
 
