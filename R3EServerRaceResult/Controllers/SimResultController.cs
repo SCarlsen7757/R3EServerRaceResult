@@ -198,7 +198,7 @@ namespace R3EServerRaceResult.Controllers
                 {
                     logger.LogInformation("No Sim result event found for name: {EventName} in Summary: {SummaryName}", eventName, summaryPath);
                 }
-                return NotFound("No R3E result found.");
+                return NotFound("No Sim result event found.");
             }
 
             result.Config = config;
@@ -304,7 +304,7 @@ namespace R3EServerRaceResult.Controllers
                     logger.LogInformation("No Sim result event found for name: {EventName} in Summary: {SummaryName}", eventName, summaryPath);
                 }
 
-                return NotFound("No R3E result found.");
+                return NotFound("No Sim result event found.");
             }
 
             if (result.Config == null)
