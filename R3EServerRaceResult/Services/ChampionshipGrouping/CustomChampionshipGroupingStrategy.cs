@@ -1,8 +1,9 @@
 using R3EServerRaceResult.Models.R3EServerResult;
+using System.Text.RegularExpressions;
 
 namespace R3EServerRaceResult.Services.ChampionshipGrouping
 {
-    public class CustomChampionshipGroupingStrategy : IChampionshipGroupingStrategy
+    public partial class CustomChampionshipGroupingStrategy : IChampionshipGroupingStrategy
     {
         private readonly ChampionshipConfigurationStore configurationStore;
         private readonly ILogger<CustomChampionshipGroupingStrategy> logger;
@@ -32,7 +33,7 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
             var config = GetOrCreateConfiguration(raceResult);
 
             // Create a safe folder name from championship name
-            var safeName = string.Join("_", config.Name.Split(Path.GetInvalidFileNameChars()));
+            var safeName = SafeFolderNameRegex().Replace(config.Name, "_");
             return Path.Combine(config.StartDate.Year.ToString(), "custom-championships", $"{safeName}_{config.Id}");
         }
 
@@ -92,5 +93,8 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
                 return newConfig;
             }
         }
+
+        [GeneratedRegex(@"[^a-zA-Z0-9_\-]")]
+        private static partial Regex SafeFolderNameRegex();
     }
 }
