@@ -218,7 +218,7 @@ PATCH /api/summaries/events/{eventName}/config?summaryPath={path}
 
 ## Docker Volumes
 
-The application uses a named volume `SimResultsData` to persist race results and summaries. Both the API container and NGINX container mount this volume.
+The application uses a named volume `data` to persist race results and summaries. Both the API container and NGINX container mount this volume.
 
 ## SimResults.net Integration
 
