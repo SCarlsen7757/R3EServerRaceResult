@@ -28,7 +28,7 @@ namespace R3EServerRaceResult.Services
 
                 // Check for overlaps with existing configurations
                 var activeConfigs = configurations.Where(c => c.IsActive);
-                foreach (var existingConfig in activeConfigs)
+                foreach (var existingConfig in configurations.Where(c => c.IsActive))
                 {
                     if (config.OverlapsWith(existingConfig))
                     {
