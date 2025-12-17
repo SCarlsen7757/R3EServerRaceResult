@@ -70,7 +70,7 @@ builder.Services.AddSingleton<IChampionshipGroupingStrategy>(sp =>
         GroupingStrategyType.Custom => new CustomChampionshipGroupingStrategy(
             sp.GetRequiredService<R3EServerRaceResult.Services.ChampionshipConfigurationStore>(),
             sp.GetRequiredService<ILogger<CustomChampionshipGroupingStrategy>>()),
-        GroupingStrategyType.Monthly or _ => new MonthlyGroupingStrategy()
+        _ => new MonthlyGroupingStrategy()
     };
 });
 
