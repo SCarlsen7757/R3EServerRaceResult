@@ -2,31 +2,13 @@
 
 namespace R3EServerRaceResult.Models.R3EServerResult
 {
-    public class RaceSessionLap
-    {
-        [JsonPropertyName("Time")]
-        [JsonConverter(typeof(TimeSpanConverter))]
-        public TimeSpan Time { get; set; }
-
-        [JsonPropertyName("SectorTimes")]
-        [JsonConverter(typeof(ListTimeSpanConverter))]
-        public List<TimeSpan> SectorTimes { get; set; } = [];
-
-        [JsonPropertyName("PositionInClass")]
-        public int PositionInClass { get; set; }
-
-        [JsonPropertyName("Valid")]
-        public bool Valid { get; set; }
-
-        [JsonPropertyName("Position")]
-        public int Position { get; set; }
-
-        [JsonPropertyName("PitStopOccured")]
-        public bool PitStopOccured { get; set; }
-
-        [JsonPropertyName("Incidents")]
-        public List<Incident> Incidents { get; set; } = [];
-    }
-
-
+    public record RaceSessionLap(
+        [property: JsonPropertyName("Time"), JsonConverter(typeof(TimeSpanConverter))] TimeSpan Time,
+        [property: JsonPropertyName("SectorTimes"), JsonConverter(typeof(ListTimeSpanConverter))] List<TimeSpan> SectorTimes,
+        [property: JsonPropertyName("PositionInClass")] int PositionInClass,
+        [property: JsonPropertyName("Valid")] bool Valid,
+        [property: JsonPropertyName("Position")] int Position,
+        [property: JsonPropertyName("PitStopOccured")] bool PitStopOccured,
+        [property: JsonPropertyName("Incidents")] List<Incident> Incidents
+    );
 }

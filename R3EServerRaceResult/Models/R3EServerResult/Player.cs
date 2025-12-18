@@ -2,59 +2,23 @@
 
 namespace R3EServerRaceResult.Models.R3EServerResult
 {
-    public class Player
-    {
-        [JsonPropertyName("UserId")]
-        public int UserId { get; set; }
-
-        [JsonPropertyName("FullName")]
-        public string FullName { get; set; } = string.Empty;
-
-        [JsonPropertyName("Username")]
-        public string Username { get; set; } = string.Empty;
-
-        [JsonPropertyName("UserWeightPenalty")]
-        public int UserWeightPenalty { get; set; }
-
-        [JsonPropertyName("CarId")]
-        public int CarId { get; set; }
-
-        [JsonPropertyName("Car")]
-        public string Car { get; set; } = string.Empty;
-
-        [JsonPropertyName("CarWeightPenalty")]
-        public int CarWeightPenalty { get; set; }
-
-        [JsonPropertyName("LiveryId")]
-        public int LiveryId { get; set; }
-
-        [JsonPropertyName("CarPerformanceIndex")]
-        public int CarPerformanceIndex { get; set; }
-
-        [JsonPropertyName("Position")]
-        public int Position { get; set; }
-
-        [JsonPropertyName("PositionInClass")]
-        public int PositionInClass { get; set; }
-
-        [JsonPropertyName("StartPosition")]
-        public int StartPosition { get; set; }
-
-        [JsonPropertyName("StartPositionInClass")]
-        public int StartPositionInClass { get; set; }
-
-        [JsonPropertyName("BestLapTime")]
-        [JsonConverter(typeof(TimeSpanConverter))]
-        public TimeSpan BestLapTime { get; set; }
-
-        [JsonPropertyName("TotalTime")]
-        [JsonConverter(typeof(TimeSpanConverter))]
-        public TimeSpan TotalTime { get; set; }
-
-        [JsonPropertyName("FinishStatus")]
-        public string FinishStatus { get; set; } = string.Empty;
-
-        [JsonPropertyName("RaceSessionLaps")]
-        public List<RaceSessionLap> RaceSessionLaps { get; set; } = [];
-    }
+    public record Player(
+        [property: JsonPropertyName("UserId")] int UserId,
+        [property: JsonPropertyName("FullName")] string FullName,
+        [property: JsonPropertyName("Username")] string Username,
+        [property: JsonPropertyName("UserWeightPenalty")] int UserWeightPenalty,
+        [property: JsonPropertyName("CarId")] int CarId,
+        [property: JsonPropertyName("Car")] string Car,
+        [property: JsonPropertyName("CarWeightPenalty")] int CarWeightPenalty,
+        [property: JsonPropertyName("LiveryId")] int LiveryId,
+        [property: JsonPropertyName("CarPerformanceIndex")] int CarPerformanceIndex,
+        [property: JsonPropertyName("Position")] int Position,
+        [property: JsonPropertyName("PositionInClass")] int PositionInClass,
+        [property: JsonPropertyName("StartPosition")] int StartPosition,
+        [property: JsonPropertyName("StartPositionInClass")] int StartPositionInClass,
+        [property: JsonPropertyName("BestLapTime"), JsonConverter(typeof(TimeSpanConverter))] TimeSpan BestLapTime,
+        [property: JsonPropertyName("TotalTime"), JsonConverter(typeof(TimeSpanConverter))] TimeSpan TotalTime,
+        [property: JsonPropertyName("FinishStatus")] string FinishStatus,
+        [property: JsonPropertyName("RaceSessionLaps")] List<RaceSessionLap> RaceSessionLaps
+    );
 }

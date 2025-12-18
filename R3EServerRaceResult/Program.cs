@@ -1,3 +1,4 @@
+using R3EServerRaceResult.Services.ChampionshipGrouping;
 using R3EServerRaceResult.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,61 +19,65 @@ if (!Enum.TryParse<LogLevel>(logLevelString, true, out var logLevel))
 }
 builder.Logging.SetMinimumLevel(logLevel);
 
-// Read from environment variables for championship settings
-builder.Services.Configure<ChampionshipAppSettings>(options =>
-{
-    var envWebServer = builder.Configuration.GetValue("CHAMPIONSHIP_WEBSERVER", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envWebServer)) options.WebServer = envWebServer;
-
-    var envEventName = builder.Configuration.GetValue("CHAMPIONSHIP_EVENTNAME", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envEventName)) options.EventName = envEventName;
-
-    var envEventUrl = builder.Configuration.GetValue("CHAMPIONSHIP_EVENTURL", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envEventUrl)) options.EventUrl = envEventUrl;
-
-    var envLogoUrl = builder.Configuration.GetValue("CHAMPIONSHIP_LOGOURL", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envLogoUrl)) options.LogoUrl = envLogoUrl;
-
-    var envLeagueName = builder.Configuration.GetValue("CHAMPIONSHIP_LEAGUENAME", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envLeagueName)) options.LeagueName = envLeagueName;
-
-    var envLeagueUrl = builder.Configuration.GetValue("CHAMPIONSHIP_LEAGUEURL", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envLeagueUrl)) options.LeaugeUrl = envLeagueUrl;
-
-    PointSystem pointSystem = new();
-    var envPointSystemRace = builder.Configuration.GetValue("CHAMPIONSHIP_POINTSYSTEM_RACE", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envPointSystemRace)) pointSystem.Race = [.. envPointSystemRace.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse)];
-
-    var envPointSystemQualify = builder.Configuration.GetValue("CHAMPIONSHIP_POINTSYSTEM_QUALIFY", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envPointSystemQualify)) pointSystem.Qualify = [.. envPointSystemQualify.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse)];
-
-    var envPointSystemBestLap = builder.Configuration.GetValue("CHAMPIONSHIP_POINTSYSTEM_BEST_LAP", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envPointSystemBestLap) && int.TryParse(envPointSystemBestLap, out int bestLapPoint)) pointSystem.BestLap = bestLapPoint;
-
-    options.PointSystem = pointSystem;
-});
-
-//Read from environment variables for file storage settings
-builder.Services.Configure<FileStorageAppSettings>(options =>
-{
-    var envMountedVolumePath = builder.Configuration.GetValue("FILE_STORAGE_MOUNTED_VOLUME_PATH", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envMountedVolumePath)) options.MountedVolumePath = envMountedVolumePath;
-
-    var envResultFileName = builder.Configuration.GetValue("FILE_STORAGE_RESULT_FILE_NAME", string.Empty);
-    if (!string.IsNullOrWhiteSpace(envResultFileName)) options.ResultFileName = envResultFileName;
-});
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
-builder.Services.Configure<ChampionshipAppSettings>(builder.Configuration.GetSection("Championship"));
+// Configure Championship settings from appsettings.json
+builder.Services.Configure<ChampionshipAppSettings>(
+    builder.Configuration.GetSection("Championship"));
+
+// Configure File Storage settings from appsettings.json
+builder.Services.Configure<FileStorageAppSettings>(options =>
+{
+    var section = builder.Configuration.GetSection("FileStorage");
+    section.Bind(options);
+
+    // Validate and handle invalid enum values
+    var strategyString = section.GetValue<string>("GroupingStrategy");
+    if (!string.IsNullOrEmpty(strategyString) &&
+        !Enum.TryParse<GroupingStrategyType>(strategyString, true, out var strategy))
+    {
+        var logger = LoggerFactory.Create(b => b.AddConsole()).CreateLogger("Startup");
+        if (logger.IsEnabled(LogLevel.Warning))
+        {
+            logger.LogWarning("Invalid GroupingStrategy value '{Strategy}'. Defaulting to Monthly.", strategyString);
+        }
+
+        options.GroupingStrategy = GroupingStrategyType.Monthly;
+    }
+});
+
+builder.Services.AddSingleton(sp =>
+{
+    var fileStorageSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
+    var logger = sp.GetRequiredService<ILogger<R3EServerRaceResult.Services.ChampionshipConfigurationStore>>();
+    return new R3EServerRaceResult.Services.ChampionshipConfigurationStore(fileStorageSettings.MountedVolumePath, logger);
+});
+
+builder.Services.AddSingleton<IChampionshipGroupingStrategy>(sp =>
+{
+    var fileStorageSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
+
+    return fileStorageSettings.GroupingStrategy switch
+    {
+        GroupingStrategyType.RaceCount => new RaceCountGroupingStrategy(
+            fileStorageSettings.RacesPerChampionship,
+            fileStorageSettings.ChampionshipStartDate,
+            fileStorageSettings.MountedVolumePath),
+        GroupingStrategyType.Custom => new CustomChampionshipGroupingStrategy(
+            sp.GetRequiredService<R3EServerRaceResult.Services.ChampionshipConfigurationStore>(),
+            sp.GetRequiredService<ILogger<CustomChampionshipGroupingStrategy>>()),
+        _ => new MonthlyGroupingStrategy()
+    };
+});
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -92,5 +97,7 @@ app.Use(async (context, next) =>
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();

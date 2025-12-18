@@ -1,6 +1,6 @@
 services:
   r3eserverraceresult:
-    container_name: R3EServerRaceResult
+    container_name: r3e-server-race-result
     image: ${DOCKER_REGISTRY-}r3eserverraceresult
     build:
       context: R3EServerRaceResult
@@ -8,24 +8,42 @@ services:
     ports:
       - "8251:8080"
     environment:
-      - CHAMPIONSHIP_WEBSERVER=http://your-domain.com:8251
-      - CHAMPIONSHIP_EVENTNAME=Championship
-      - CHAMPIONSHIP_LEAGUENAME=R3E <3
-      - FILE_STORAGE_MOUNTED_VOLUME_PATH=/app/data #The same path for the mounted volume
-      - LOG_LEVEL=TRACE 
+      - LOG_LEVEL=TRACE
+      - Championship__WebServer=http://your-domain.com:8251
+      - Championship__EventName=Championship
+      - Championship__LeagueName=R3E <3
+      - Championship__PointSystem__Race__0=25
+      - Championship__PointSystem__Race__1=18
+      - Championship__PointSystem__Race__2=15
+      - Championship__PointSystem__Race__3=12
+      - Championship__PointSystem__Race__4=10
+      - Championship__PointSystem__Race__5=8
+      - Championship__PointSystem__Race__6=6
+      - Championship__PointSystem__Race__7=4
+      - Championship__PointSystem__Race__8=2
+      - Championship__PointSystem__Race__9=1
+      - Championship__PointSystem__Qualify__0=3
+      - Championship__PointSystem__Qualify__1=2
+      - Championship__PointSystem__Qualify__2=1
+      - Championship__PointSystem__FastestLap=1
+      - FileStorage__MountedVolumePath=/app/data
+      - FileStorage__ResultFileName=summary
+      - FileStorage__GroupingStrategy=Monthly # Options: Monthly, RaceCount, Custom
+      - FileStorage__RacesPerChampionship=4
+      # - FileStorage__ChampionshipStartDate=2026-06-25T00:00:00
     volumes:
-      - SimResultsData:/app/data
+      - data:/app/data
     user: "0" # run as root
 
   staticserver:
     image: nginx:latest
-    container_name: SimResultsWebServer
+    container_name: sim-results-web-server
     ports:
       - "8252:80"
     volumes:
-      - SimResultsData:/usr/share/nginx/html:ro  # serve static content from volume
+      - data:/usr/share/nginx/html:ro  # serve static content from volume
       - ./nginx.conf:/etc/nginx/nginx.conf:ro   # Mount the config
     restart: always
 
 volumes:
-  SimResultsData:
+  data:

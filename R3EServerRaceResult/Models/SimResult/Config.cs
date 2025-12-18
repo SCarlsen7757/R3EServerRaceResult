@@ -13,10 +13,10 @@ namespace R3EServerRaceResult.Models.SimResult
             if (!string.IsNullOrWhiteSpace(settings.EventUrl)) EventUrl = settings.EventUrl;
             if (!string.IsNullOrWhiteSpace(settings.LogoUrl)) LogoUrl = settings.LogoUrl;
             if (!string.IsNullOrWhiteSpace(settings.LeagueName)) League = settings.LeagueName;
-            if (!string.IsNullOrWhiteSpace(settings.LeaugeUrl)) LeagueUrl = settings.LeaugeUrl;
+            if (!string.IsNullOrWhiteSpace(settings.LeagueUrl)) LeagueUrl = settings.LeagueUrl;
             if (settings.PointSystem.Race.Count > 0) Points = string.Join(',', settings.PointSystem.Race);
             if (settings.PointSystem.Qualify.Count > 0) QPoints = string.Join(',', settings.PointSystem.Qualify);
-            if (settings.PointSystem.BestLap > 0) BestLapBoints = settings.PointSystem.BestLap.ToString();
+            if (settings.PointSystem.BestLap > 0) BestLapPoints = settings.PointSystem.BestLap.ToString();
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace R3EServerRaceResult.Models.SimResult
         /// <summary>
         /// League link.
         /// </summary>
-        [JsonPropertyName("leauge_link")]
+        [JsonPropertyName("league_link")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? LeagueUrl { get; set; }
 
@@ -88,7 +88,7 @@ namespace R3EServerRaceResult.Models.SimResult
         /// </summary>
         [JsonPropertyName("best_lap_points")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? BestLapBoints { get; set; }
+        public string? BestLapPoints { get; set; }
 
         /// <summary>
         /// Race Stop/Go penalty will lose points.
