@@ -76,16 +76,12 @@ namespace R3EServerRaceResult.Controllers
         [HttpPost("configurations")]
         [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.Created)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
         public async Task<IActionResult> Create([FromBody] CreateChampionshipConfigurationRequest request)
         {
             if (request == null)
             {
                 return BadRequest("Championship configuration request cannot be null");
             }
-
-            var result = ValidateCustomStrategy();
-            if (result != null) return result;
 
             // Create configuration entity from request
             var config = new ChampionshipConfiguration
@@ -122,16 +118,12 @@ namespace R3EServerRaceResult.Controllers
         [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
-        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
         public async Task<IActionResult> Update(string id, [FromBody] UpdateChampionshipConfigurationRequest request)
         {
             if (request == null)
             {
                 return BadRequest("Championship configuration request cannot be null");
             }
-
-            var result = ValidateCustomStrategy();
-            if (result != null) return result;
 
             var existing = await configStore.GetConfigurationByIdAsync(id);
             if (existing == null)
@@ -173,12 +165,8 @@ namespace R3EServerRaceResult.Controllers
         [HttpDelete("configurations/{id}")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
-        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
         public async Task<IActionResult> Delete(string id)
         {
-            var result = ValidateCustomStrategy();
-            if (result != null) return result;
-
             var success = await configStore.RemoveConfigurationAsync(id);
             if (!success)
             {
@@ -202,12 +190,8 @@ namespace R3EServerRaceResult.Controllers
         /// </summary>
         [HttpGet("racecount")]
         [ProducesResponseType(typeof(List<RaceCountStateResponse>), (int)HttpStatusCode.OK)]
-        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
         public async Task<IActionResult> GetAllRaceCountStates()
         {
-            var result = ValidateRaceCountStrategy();
-            if (result != null) return result;
-
             var allStates = await raceCountRepository.GetAllRaceCountsAsync();
             var responses = new List<RaceCountStateResponse>();
 
@@ -239,12 +223,8 @@ namespace R3EServerRaceResult.Controllers
         [HttpGet("racecount/{year}")]
         [ProducesResponseType(typeof(RaceCountStateResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
-        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
         public async Task<IActionResult> GetRaceCountState(int year)
         {
-            var result = ValidateRaceCountStrategy();
-            if (result != null) return result;
-
             var state = await raceCountRepository.GetByYearAsync(year);
             if (state == null)
             {
@@ -272,12 +252,8 @@ namespace R3EServerRaceResult.Controllers
         [HttpPost("racecount/reset")]
         [ProducesResponseType(typeof(ResetRaceCountResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
         public async Task<IActionResult> ResetRaceCount([FromBody] ResetRaceCountRequest request)
         {
-            var result = ValidateRaceCountStrategy();
-            if (result != null) return result;
-
             // Default to current year if not specified
             var year = request.Year ?? DateTime.UtcNow.Year;
 
@@ -313,50 +289,6 @@ namespace R3EServerRaceResult.Controllers
             }
 
             return Ok(response);
-        }
-
-        #endregion
-
-        #region Validation Helpers
-
-        private ObjectResult? ValidateCustomStrategy()
-        {
-            if (fileStorageSettings.GroupingStrategy != GroupingStrategyType.Custom)
-            {
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning("Attempted to access Custom strategy endpoint but Custom strategy is not active. Current strategy: {Strategy}",
-                        fileStorageSettings.GroupingStrategy);
-                }
-
-                return StatusCode((int)HttpStatusCode.NotImplemented, new
-                {
-                    error = "Custom championship strategy not active",
-                    message = $"Current grouping strategy is '{fileStorageSettings.GroupingStrategy}'. Please change the GroupingStrategy to 'Custom' in appsettings.json to use championship configurations.",
-                    currentStrategy = fileStorageSettings.GroupingStrategy.ToString()
-                });
-            }
-            return null;
-        }
-
-        private ObjectResult? ValidateRaceCountStrategy()
-        {
-            if (fileStorageSettings.GroupingStrategy != GroupingStrategyType.RaceCount)
-            {
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning("Attempted to access RaceCount strategy endpoint but RaceCount strategy is not active. Current strategy: {Strategy}",
-                        fileStorageSettings.GroupingStrategy);
-                }
-
-                return StatusCode((int)HttpStatusCode.NotImplemented, new
-                {
-                    error = "RaceCount strategy not active",
-                    message = $"Current grouping strategy is '{fileStorageSettings.GroupingStrategy}'. Please change the GroupingStrategy to 'RaceCount' in appsettings.json to use race count endpoints.",
-                    currentStrategy = fileStorageSettings.GroupingStrategy.ToString()
-                });
-            }
-            return null;
         }
 
         #endregion

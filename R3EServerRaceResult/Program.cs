@@ -70,8 +70,9 @@ builder.Services.AddDbContext<ChampionshipDbContext>((serviceProvider, options) 
 // Register repositories as scoped
 builder.Services.AddScoped<IChampionshipRepository, ChampionshipRepository>();
 builder.Services.AddScoped<IRaceCountRepository, RaceCountRepository>();
+builder.Services.AddScoped<ISummaryFileRepository, SummaryFileRepository>();
 
-// Register ChampionshipConfigurationStore as scoped (requires repository)
+// Register services
 builder.Services.AddScoped<R3EServerRaceResult.Services.ChampionshipConfigurationStore>();
 
 // Register IChampionshipGroupingStrategy as scoped to support async/database operations

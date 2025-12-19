@@ -211,8 +211,6 @@ Returns the currently active grouping strategy type.
 
 #### Custom Strategy Endpoints
 
-> **Note**: These endpoints are only available when using the `Custom` grouping strategy.
-
 ##### Get All Championships
 ```http
 GET /api/championships/configurations?includeExpired=true
@@ -284,8 +282,6 @@ Deletes a championship configuration. Returns 204 No Content on success.
 - `isExpired`: Automatically true if current date is after `endDate`
 
 #### RaceCount Strategy Endpoints
-
-> **Note**: These endpoints are only available when using the `RaceCount` grouping strategy.
 
 ##### Get All Race Count States
 ```http
@@ -367,6 +363,43 @@ Resets the race counter for a specific year to start a new championship immediat
 
 **Important:** Existing race results before the reset remain in their original championships and folders. Only new races after the reset will be assigned to the new championship sequence.
 
+### Summary Management (`/api/summaries`)
+
+#### Get Summary URLs
+```http
+GET /api/summaries/urls?year={year}&strategy={strategy}
+```
+
+Returns list of SimResults.net URLs for all championships.
+
+**Query Parameters:**
+- `year` (optional): Filter by year (e.g., `2025`)
+- `strategy` (optional): Filter by grouping strategy (`Monthly`, `RaceCount`, or `Custom`)
+
+**Examples:**
+```http
+GET /api/summaries/urls
+GET /api/summaries/urls?year=2025
+GET /api/summaries/urls?strategy=RaceCount
+GET /api/summaries/urls?year=2025&strategy=Custom
+```
+
+**Response:**
+```json
+[
+  "simresults.net/remote?results=http://your-domain.com:8252/2025/champ1/summary.json",
+  "simresults.net/remote?results=http://your-domain.com:8252/2025/champ2/summary.json"
+]
+```
+
+**Note:** Summary files are automatically indexed in the SQLite database for fast queries. The index includes:
+- File path
+- Championship key
+- Strategy type
+- Year
+- Race count
+- Creation and update timestamps
+
 ## Database Schema Changes
 
 - Removed `ChampionshipStartDate` column from championship tables
@@ -379,6 +412,9 @@ Resets the race counter for a specific year to start a new championship immediat
 
 - `RaceCountStates`
   - No change
+
+- `SummaryFiles`
+  - Added for indexing summary file metadata
 
 ### SQL Script Example
 
@@ -401,3 +437,45 @@ CREATE TABLE RaceCountStates (
     RacesPerChampionship INTEGER NOT NULL,  -- Configuration: races per championship
     LastUpdated DATETIME NOT NULL           -- Tracking timestamp
 );
+
+-- Summary file index (all strategies)
+CREATE TABLE SummaryFiles (
+    Id TEXT(36) PRIMARY KEY,
+    FilePath TEXT(500) NOT NULL UNIQUE,
+    ChampionshipKey TEXT(50) NOT NULL,
+    ChampionshipName TEXT(200),
+    Strategy TEXT(20) NOT NULL,            -- Monthly, RaceCount, or Custom
+    Year INTEGER NOT NULL,
+    RaceCount INTEGER NOT NULL,             -- Number of race events in championship
+    CreatedAt DATETIME NOT NULL,
+    LastUpdated DATETIME NOT NULL
+);
+
+-- Indexes for efficient date range queries
+CREATE INDEX IX_ChampionshipConfigurations_StartDate ON ChampionshipConfigurations (StartDate);
+CREATE INDEX IX_ChampionshipConfigurations_EndDate ON ChampionshipConfigurations (EndDate);
+CREATE INDEX IX_ChampionshipConfigurations_StartDate_EndDate ON ChampionshipConfigurations (StartDate, EndDate);
+
+-- Indexes for efficient summary queries
+CREATE UNIQUE INDEX IX_SummaryFiles_FilePath ON SummaryFiles (FilePath);
+CREATE INDEX IX_SummaryFiles_Year ON SummaryFiles (Year);
+CREATE INDEX IX_SummaryFiles_Strategy ON SummaryFiles (Strategy);
+CREATE INDEX IX_SummaryFiles_ChampionshipKey ON SummaryFiles (ChampionshipKey);
+CREATE INDEX IX_SummaryFiles_CreatedAt ON SummaryFiles (CreatedAt);
+CREATE INDEX IX_SummaryFiles_RaceCount ON SummaryFiles (RaceCount);
+
+```
+
+### Data Persistence
+
+The application persists data in multiple ways:
+
+1. **Race Results & Summaries**: Stored as JSON files in the mounted volume (`/app/data`)
+2. **Championship Configurations** (Custom strategy): Stored in SQLite database (`/app/data/championships.db`)
+3. **Race Count Tracking** (RaceCount strategy): Stored in SQLite database (`/app/data/championships.db`)
+4. **Summary File Index** (all strategies): Stored in SQLite database (`/app/data/championships.db`)
+   - Automatically indexes summary files when created via API
+   - Tracks championship metadata (year, strategy, race count)
+   - Only summaries uploaded through the API are indexed
+
+All data is persisted in the Docker volume, ensuring it survives container restarts.

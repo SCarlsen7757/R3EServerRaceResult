@@ -12,6 +12,7 @@ namespace R3EServerRaceResult.Data
 
         public DbSet<ChampionshipConfiguration> ChampionshipConfigurations { get; set; }
         public DbSet<RaceCountState> RaceCountStates { get; set; }
+        public DbSet<SummaryFile> SummaryFiles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -63,6 +64,53 @@ namespace R3EServerRaceResult.Data
 
                 entity.Property(e => e.LastUpdated)
                     .IsRequired();
+            });
+
+            modelBuilder.Entity<SummaryFile>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .IsRequired()
+                    .HasMaxLength(36);
+
+                entity.Property(e => e.FilePath)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.ChampionshipKey)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.ChampionshipName)
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.Strategy)
+                    .IsRequired()
+                    .HasConversion<string>();
+
+                entity.Property(e => e.Year)
+                    .IsRequired();
+
+                entity.Property(e => e.RaceCount)
+                    .IsRequired();
+
+                entity.Property(e => e.CreatedAt)
+                    .IsRequired();
+
+                entity.Property(e => e.LastUpdated)
+                    .IsRequired();
+
+                // Unique constraint on FilePath
+                entity.HasIndex(e => e.FilePath)
+                    .IsUnique();
+
+                // Indexes for efficient queries
+                entity.HasIndex(e => e.Year);
+                entity.HasIndex(e => e.Strategy);
+                entity.HasIndex(e => e.ChampionshipKey);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.RaceCount);
             });
         }
     }
