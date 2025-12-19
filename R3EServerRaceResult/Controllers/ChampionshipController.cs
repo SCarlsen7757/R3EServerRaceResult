@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using R3EServerRaceResult.Data.Repositories;
 using R3EServerRaceResult.Models;
 using R3EServerRaceResult.Services;
 using R3EServerRaceResult.Settings;
-using R3EServerRaceResult.Data.Repositories;
 using System.Net;
 
 namespace R3EServerRaceResult.Controllers
@@ -16,6 +16,9 @@ namespace R3EServerRaceResult.Controllers
         private readonly IRaceCountRepository raceCountRepository;
         private readonly FileStorageAppSettings fileStorageSettings;
         private readonly ILogger<ChampionshipController> logger;
+
+        private static readonly int min_valid_year = DateOnly.MinValue.Year;
+        private static readonly int max_valid_year = DateOnly.MaxValue.Year;
 
         public ChampionshipController(
             ChampionshipConfigurationStore configStore,
@@ -257,15 +260,15 @@ namespace R3EServerRaceResult.Controllers
             // Default to current year if not specified
             var year = request.Year ?? DateTime.UtcNow.Year;
 
-            if (year < 2000 || year > 2100)
+            if (year < min_valid_year || year > max_valid_year)
             {
-                return BadRequest("Year must be between 2000 and 2100");
+                return BadRequest($"Year must be between {min_valid_year} and {max_valid_year}");
             }
 
             // Get current state before reset
             var currentState = await raceCountRepository.GetByYearAsync(year);
             var previousCount = currentState?.RaceCount ?? 0;
-            var previousChampionship = currentState != null 
+            var previousChampionship = currentState != null
                 ? $"{year}-C{(currentState.RaceCount / currentState.RacesPerChampionship) + 1:D2}"
                 : null;
 
@@ -284,7 +287,7 @@ namespace R3EServerRaceResult.Controllers
             if (logger.IsEnabled(LogLevel.Information))
             {
                 var reasonLog = !string.IsNullOrEmpty(request.Reason) ? $" Reason: {request.Reason}" : "";
-                logger.LogInformation("Race counter manually reset for year {Year} from {OldCount} to 0 via API.{Reason}", 
+                logger.LogInformation("Race counter manually reset for year {Year} from {OldCount} to 0 via API.{Reason}",
                     year, previousCount, reasonLog);
             }
 

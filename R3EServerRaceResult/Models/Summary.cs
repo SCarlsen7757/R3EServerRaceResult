@@ -5,7 +5,7 @@ namespace R3EServerRaceResult.Models
     /// <summary>
     /// Entity for indexing summary files in the database
     /// </summary>
-    public class SummaryFile
+    public class Summary
     {
         /// <summary>
         /// Unique identifier (GUID)

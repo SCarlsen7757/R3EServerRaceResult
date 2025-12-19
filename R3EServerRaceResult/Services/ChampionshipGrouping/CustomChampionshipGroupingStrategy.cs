@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace R3EServerRaceResult.Services.ChampionshipGrouping
 {
-    public partial class CustomChampionshipGroupingStrategy : IChampionshipGroupingStrategy
+    public partial class CustomChampionshipGroupingStrategy : IChampionshipGroupingStrategy, IDisposable
     {
         private readonly ILogger<CustomChampionshipGroupingStrategy> logger;
         private readonly ChampionshipConfigurationStore configurationStore;
@@ -16,6 +16,15 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
         {
             this.logger = logger;
             this.configurationStore = configurationStore;
+        }
+
+        private volatile bool disposed = false;
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+            semaphore.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public async Task<string> GetChampionshipKeyAsync(Result raceResult)

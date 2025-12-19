@@ -12,7 +12,7 @@ namespace R3EServerRaceResult.Data
 
         public DbSet<ChampionshipConfiguration> ChampionshipConfigurations { get; set; }
         public DbSet<RaceCountState> RaceCountStates { get; set; }
-        public DbSet<SummaryFile> SummaryFiles { get; set; }
+        public DbSet<Summary> SummaryFiles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -66,7 +66,7 @@ namespace R3EServerRaceResult.Data
                     .IsRequired();
             });
 
-            modelBuilder.Entity<SummaryFile>(entity =>
+            modelBuilder.Entity<Summary>(entity =>
             {
                 entity.HasKey(e => e.Id);
 

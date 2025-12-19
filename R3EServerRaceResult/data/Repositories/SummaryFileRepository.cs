@@ -17,19 +17,19 @@ namespace R3EServerRaceResult.Data.Repositories
             this.logger = logger;
         }
 
-        public async Task<SummaryFile?> GetByFilePathAsync(string filePath)
+        public async Task<Summary?> GetByFilePathAsync(string filePath)
         {
             return await context.SummaryFiles
                 .FirstOrDefaultAsync(s => s.FilePath == filePath);
         }
 
-        public async Task<SummaryFile?> GetByChampionshipKeyAsync(string championshipKey)
+        public async Task<Summary?> GetByChampionshipKeyAsync(string championshipKey)
         {
             return await context.SummaryFiles
                 .FirstOrDefaultAsync(s => s.ChampionshipKey == championshipKey);
         }
 
-        public async Task<List<SummaryFile>> GetAllAsync(int? year = null, GroupingStrategyType? strategy = null)
+        public async Task<List<Summary>> GetAllAsync(int? year = null, GroupingStrategyType? strategy = null)
         {
             var query = context.SummaryFiles.AsQueryable();
 
@@ -49,7 +49,7 @@ namespace R3EServerRaceResult.Data.Repositories
                 .ToListAsync();
         }
 
-        public async Task<bool> AddOrUpdateAsync(SummaryFile summaryFile)
+        public async Task<bool> AddOrUpdateAsync(Summary summaryFile)
         {
             try
             {
@@ -77,7 +77,7 @@ namespace R3EServerRaceResult.Data.Repositories
 
                     if (logger.IsEnabled(LogLevel.Debug))
                     {
-                        logger.LogDebug("Updating summary file index: {FilePath} (RaceCount: {RaceCount})", 
+                        logger.LogDebug("Updating summary file index: {FilePath} (RaceCount: {RaceCount})",
                             summaryFile.FilePath, summaryFile.RaceCount);
                     }
                 }

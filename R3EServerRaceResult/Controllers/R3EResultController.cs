@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using R3EServerRaceResult.Data.Repositories;
 using R3EServerRaceResult.Models;
 using R3EServerRaceResult.Models.R3EServerResult;
 using R3EServerRaceResult.Services.ChampionshipGrouping;
 using R3EServerRaceResult.Settings;
-using R3EServerRaceResult.Data.Repositories;
 using System.Net;
 using System.Text.Json;
 
@@ -227,6 +227,7 @@ namespace R3EServerRaceResult.Controllers
 
         [HttpDelete("{*resultPath}")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         public async Task<IActionResult> Delete(string resultPath)
         {
@@ -240,7 +241,18 @@ namespace R3EServerRaceResult.Controllers
                 return NotFound("File not found!");
             }
 
-            await RemoveResultFromSummary(filePath);
+            try
+            {
+                await RemoveResultFromSummary(filePath);
+            }
+            catch (Exception ex)
+            {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning(ex, "Error removing result from summary before deleting file: {FilePath}", filePath);
+                }
+                return BadRequest("Error removing result from summary: " + ex.Message);
+            }
             System.IO.File.Delete(filePath);
             if (logger.IsEnabled(LogLevel.Information))
             {
@@ -252,7 +264,7 @@ namespace R3EServerRaceResult.Controllers
 
         private async Task MakeSimResultSummary(string resultFilePath, Result r3EResult)
         {
-            var summaryFilePath = await GetSummaryFilePathAsync(r3EResult);
+            var summaryFilePath = await GetOrCreateSummaryFilePathAsync(r3EResult);
             var isNewSummary = !System.IO.File.Exists(summaryFilePath);
 
             var simResult = isNewSummary
@@ -320,7 +332,7 @@ namespace R3EServerRaceResult.Controllers
             var r3EResult = JsonSerializer.Deserialize<Result>(resultJson);
             if (r3EResult == null) return;
 
-            var summaryFilePath = await GetSummaryFilePathAsync(r3EResult);
+            var summaryFilePath = await GetOrCreateSummaryFilePathAsync(r3EResult);
 
             if (!System.IO.File.Exists(summaryFilePath)) return;
             var simResult = JsonSerializer.Deserialize<Models.SimResult.SimResult>(await System.IO.File.ReadAllTextAsync(summaryFilePath));
@@ -339,11 +351,11 @@ namespace R3EServerRaceResult.Controllers
                 if (simResult.Results.All(x => x.Log.Count == 0))
                 {
                     System.IO.File.Delete(summaryFilePath);
-                    
+
                     // Remove from database index
                     var relativePath = GetRelativePath(summaryFilePath);
                     await summaryFileRepository.DeleteAsync(relativePath);
-                    
+
                     if (logger.IsEnabled(LogLevel.Information))
                     {
                         logger.LogInformation("Summary file deleted and removed from index: {SummaryFilePath}", summaryFilePath);
@@ -368,24 +380,25 @@ namespace R3EServerRaceResult.Controllers
                 var relativePath = GetRelativePath(summaryFilePath);
                 var championshipKey = await groupingStrategy.GetChampionshipKeyAsync(r3EResult);
                 var eventName = await groupingStrategy.GetEventNameAsync(r3EResult);
-                
+
                 // Count total races across all events in this summary
                 var totalRaces = simResult.Results.Sum(r => r.Log.Count);
 
-                var summaryFile = new SummaryFile
+                var summaryFromDb = await summaryFileRepository.GetByFilePathAsync(relativePath); //Only fetch summary from database one time.
+                var summary = new Summary
                 {
-                    Id = isNew ? Guid.NewGuid().ToString() : (await summaryFileRepository.GetByFilePathAsync(relativePath))?.Id ?? Guid.NewGuid().ToString(),
+                    Id = isNew ? Guid.NewGuid().ToString() : summaryFromDb?.Id ?? Guid.NewGuid().ToString(),
                     FilePath = relativePath,
                     ChampionshipKey = championshipKey,
                     ChampionshipName = eventName,
                     Strategy = fileStorageAppSettings.GroupingStrategy,
                     Year = r3EResult.StartTime.Year,
                     RaceCount = totalRaces,
-                    CreatedAt = isNew ? DateTime.UtcNow : (await summaryFileRepository.GetByFilePathAsync(relativePath))?.CreatedAt ?? DateTime.UtcNow,
+                    CreatedAt = isNew ? DateTime.UtcNow : summaryFromDb?.CreatedAt ?? DateTime.UtcNow,
                     LastUpdated = DateTime.UtcNow
                 };
 
-                await summaryFileRepository.AddOrUpdateAsync(summaryFile);
+                await summaryFileRepository.AddOrUpdateAsync(summary);
 
                 if (logger.IsEnabled(LogLevel.Debug))
                 {
@@ -398,6 +411,7 @@ namespace R3EServerRaceResult.Controllers
                 {
                     logger.LogError(ex, "Error indexing summary file: {SummaryFilePath}", summaryFilePath);
                 }
+                throw;
             }
         }
 
@@ -415,7 +429,7 @@ namespace R3EServerRaceResult.Controllers
             return $"{webServer}/{resultPath}";
         }
 
-        private async Task<string> GetSummaryFilePathAsync(Result result)
+        private async Task<string> GetOrCreateSummaryFilePathAsync(Result result)
         {
             var summaryFolder = Path.Combine(fileStorageAppSettings.MountedVolumePath, await groupingStrategy.GetSummaryFolderAsync(result));
             if (!Directory.Exists(summaryFolder))

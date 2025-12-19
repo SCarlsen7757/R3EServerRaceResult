@@ -4,12 +4,12 @@ namespace R3EServerRaceResult.Services
 {
     public class ChampionshipConfigurationStore
     {
-        private readonly IChampionshipRepository repository;
         private readonly ILogger<ChampionshipConfigurationStore> logger;
+        private readonly IChampionshipRepository repository;
 
         public ChampionshipConfigurationStore(
-            IChampionshipRepository repository,
-            ILogger<ChampionshipConfigurationStore> logger)
+            ILogger<ChampionshipConfigurationStore> logger,
+            IChampionshipRepository repository)
         {
             this.repository = repository;
             this.logger = logger;

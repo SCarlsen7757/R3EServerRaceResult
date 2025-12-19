@@ -5,16 +5,17 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
 {
     public class RaceCountGroupingStrategy : IChampionshipGroupingStrategy
     {
+        private readonly ILogger<RaceCountGroupingStrategy> logger;
         private readonly int racesPerChampionship;
         private readonly IRaceCountRepository repository;
-        private readonly ILogger<RaceCountGroupingStrategy> logger;
         private readonly SemaphoreSlim semaphore = new(1, 1);
         private readonly Dictionary<int, int> raceCountCache = [];
+        private readonly Lazy<Task> initializationTask;
 
         public RaceCountGroupingStrategy(
+            ILogger<RaceCountGroupingStrategy> logger,
             int racesPerChampionship,
-            IRaceCountRepository repository,
-            ILogger<RaceCountGroupingStrategy> logger)
+            IRaceCountRepository repository)
         {
             if (racesPerChampionship <= 0)
             {
@@ -25,12 +26,16 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
             this.repository = repository;
             this.logger = logger;
 
-            LoadCacheAsync().GetAwaiter().GetResult();
-            ValidateConfigurationAsync().GetAwaiter().GetResult();
+            initializationTask = new Lazy<Task>(async () =>
+            {
+                await LoadCacheAsync();
+                await ValidateConfigurationAsync();
+            });
         }
 
         public async Task<string> GetChampionshipKeyAsync(Result raceResult)
         {
+            await EnsureInitializedAsync();
             var championshipNumber = await GetChampionshipNumberAsync(raceResult.StartTime);
             var year = raceResult.StartTime.Year;
             return $"{year}-C{championshipNumber:D2}";
@@ -38,9 +43,10 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
 
         public async Task<string> GetEventNameAsync(Result raceResult)
         {
+            await EnsureInitializedAsync();
             var year = raceResult.StartTime.Year;
             var championshipNumber = await GetChampionshipNumberAsync(raceResult.StartTime);
-            
+
             await semaphore.WaitAsync();
             try
             {
@@ -56,9 +62,15 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
 
         public async Task<string> GetSummaryFolderAsync(Result raceResult)
         {
+            await EnsureInitializedAsync();
             var year = raceResult.StartTime.Year;
             var championshipNumber = await GetChampionshipNumberAsync(raceResult.StartTime);
             return Path.Combine(year.ToString(), $"champ{championshipNumber}");
+        }
+
+        private async Task EnsureInitializedAsync()
+        {
+            await initializationTask.Value;
         }
 
         private async Task<int> GetChampionshipNumberAsync(DateTime raceDate)
@@ -136,16 +148,16 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
         private async Task ValidateConfigurationAsync()
         {
             var currentYear = DateTime.UtcNow.Year;
-            
+
             // Check current year and next year (in case races span year boundary)
             for (int year = currentYear; year <= currentYear + 1; year++)
             {
                 var isValid = await repository.ValidateConfigurationAsync(year, racesPerChampionship);
-                
+
                 if (!isValid)
                 {
                     var state = await repository.GetByYearAsync(year);
-                    
+
                     if (logger.IsEnabled(LogLevel.Warning))
                     {
                         logger.LogWarning(

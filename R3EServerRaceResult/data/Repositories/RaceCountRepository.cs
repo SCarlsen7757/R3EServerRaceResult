@@ -3,7 +3,7 @@ using R3EServerRaceResult.Models;
 
 namespace R3EServerRaceResult.Data.Repositories
 {
-    public class RaceCountRepository : IRaceCountRepository
+    public class RaceCountRepository : IRaceCountRepository, IDisposable
     {
         private readonly ChampionshipDbContext context;
         private readonly ILogger<RaceCountRepository> logger;
@@ -14,6 +14,16 @@ namespace R3EServerRaceResult.Data.Repositories
         {
             this.context = context;
             this.logger = logger;
+        }
+
+        private volatile bool disposed = false;
+
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+            context.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public async Task<RaceCountState?> GetByYearAsync(int year)
@@ -92,7 +102,7 @@ namespace R3EServerRaceResult.Data.Repositories
                 {
                     logger.LogWarning(
                         "Configuration change detected for year {Year}: " +
-                        "RacesPerChampionship {OldRaces}?{NewRaces}. " +
+                        "RacesPerChampionship {OldRaces}->{NewRaces}. " +
                         "Existing race count: {RaceCount}",
                         year,
                         state.RacesPerChampionship, racesPerChampionship,

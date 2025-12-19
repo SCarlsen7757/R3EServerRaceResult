@@ -83,9 +83,9 @@ builder.Services.AddScoped<IChampionshipGroupingStrategy>(sp =>
     return fileStorageSettings.GroupingStrategy switch
     {
         GroupingStrategyType.RaceCount => new RaceCountGroupingStrategy(
+            sp.GetRequiredService<ILogger<RaceCountGroupingStrategy>>(),
             fileStorageSettings.RacesPerChampionship,
-            sp.GetRequiredService<IRaceCountRepository>(),
-            sp.GetRequiredService<ILogger<RaceCountGroupingStrategy>>()),
+            sp.GetRequiredService<IRaceCountRepository>()),
         GroupingStrategyType.Custom => new CustomChampionshipGroupingStrategy(
             sp.GetRequiredService<ILogger<CustomChampionshipGroupingStrategy>>(),
             sp.GetRequiredService<R3EServerRaceResult.Services.ChampionshipConfigurationStore>()),
