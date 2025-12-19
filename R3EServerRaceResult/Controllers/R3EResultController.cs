@@ -236,7 +236,7 @@ namespace R3EServerRaceResult.Controllers
 
         private async Task MakeSimResultSummary(string resultFilePath, Result r3EResult)
         {
-            var summaryFilePath = SummaryFilePath(r3EResult);
+            var summaryFilePath = await GetSummaryFilePathAsync(r3EResult);
 
             var simResult = (!System.IO.File.Exists(summaryFilePath))
                 ? new Models.SimResult.SimResult(settings)
@@ -251,7 +251,7 @@ namespace R3EServerRaceResult.Controllers
                 return;
             }
 
-            var eventName = groupingStrategy.GetEventName(r3EResult);
+            var eventName = await groupingStrategy.GetEventNameAsync(r3EResult);
 
             if (!simResult.Results.Any(x => x.Name == eventName))
             {
@@ -299,7 +299,7 @@ namespace R3EServerRaceResult.Controllers
             var r3EResult = JsonSerializer.Deserialize<Result>(resultJson);
             if (r3EResult == null) return;
 
-            var summaryFilePath = SummaryFilePath(r3EResult);
+            var summaryFilePath = await GetSummaryFilePathAsync(r3EResult);
 
             if (!System.IO.File.Exists(summaryFilePath)) return;
             var simResult = JsonSerializer.Deserialize<Models.SimResult.SimResult>(await System.IO.File.ReadAllTextAsync(summaryFilePath));
@@ -331,9 +331,9 @@ namespace R3EServerRaceResult.Controllers
             return $"{webServer}/{resultPath}";
         }
 
-        private string SummaryFilePath(Result result)
+        private async Task<string> GetSummaryFilePathAsync(Result result)
         {
-            var summaryFolder = Path.Combine(fileStorageAppSettings.MountedVolumePath, groupingStrategy.GetSummaryFolder(result));
+            var summaryFolder = Path.Combine(fileStorageAppSettings.MountedVolumePath, await groupingStrategy.GetSummaryFolderAsync(result));
             if (!Directory.Exists(summaryFolder))
             {
                 Directory.CreateDirectory(summaryFolder);

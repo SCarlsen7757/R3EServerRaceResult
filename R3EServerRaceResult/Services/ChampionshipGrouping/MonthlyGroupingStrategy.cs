@@ -4,19 +4,19 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
 {
     public class MonthlyGroupingStrategy : IChampionshipGroupingStrategy
     {
-        public string GetChampionshipKey(Result raceResult)
+        public Task<string> GetChampionshipKeyAsync(Result raceResult)
         {
-            return $"{raceResult.StartTime:yyyy-MM}";
+            return Task.FromResult($"{raceResult.StartTime:yyyy-MM}");
         }
 
-        public string GetEventName(Result raceResult)
+        public Task<string> GetEventNameAsync(Result raceResult)
         {
-            return $"{raceResult.StartTime:MMMM} Race {raceResult.StartTime:yyyy}";
+            return Task.FromResult($"{raceResult.StartTime:MMMM} Race {raceResult.StartTime:yyyy}");
         }
 
-        public string GetSummaryFolder(Result raceResult)
+        public Task<string> GetSummaryFolderAsync(Result raceResult)
         {
-            return raceResult.StartTime.Year.ToString();
+            return Task.FromResult(raceResult.StartTime.Year.ToString());
         }
     }
 }

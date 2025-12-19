@@ -30,7 +30,7 @@ services:
       - FileStorage__ResultFileName=summary
       - FileStorage__GroupingStrategy=Monthly # Options: Monthly, RaceCount, Custom
       - FileStorage__RacesPerChampionship=4
-      # - FileStorage__ChampionshipStartDate=2026-06-25T00:00:00
+      - FileStorage__DatabaseConnectionString=Data Source=/app/data/championships.db
     volumes:
       - data:/app/data
     user: "0" # run as root

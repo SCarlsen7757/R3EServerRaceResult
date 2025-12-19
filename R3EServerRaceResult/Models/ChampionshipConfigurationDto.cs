@@ -17,12 +17,12 @@ namespace R3EServerRaceResult.Models
     public record UpdateChampionshipConfigurationRequest(
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("startDate")] DateOnly StartDate,
-        [property: JsonPropertyName("endDate")] DateOnly EndDate,
-        [property: JsonPropertyName("isActive")] bool IsActive
+        [property: JsonPropertyName("endDate")] DateOnly EndDate
     );
 
     /// <summary>
     /// DTO for returning championship configuration in API responses
+    /// IsActive and IsExpired are computed properties based on dates
     /// </summary>
     public record ChampionshipConfigurationResponse(
         [property: JsonPropertyName("id")] string Id,

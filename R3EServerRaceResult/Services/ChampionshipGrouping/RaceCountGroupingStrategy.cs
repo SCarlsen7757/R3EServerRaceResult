@@ -1,17 +1,20 @@
+using R3EServerRaceResult.Data.Repositories;
 using R3EServerRaceResult.Models.R3EServerResult;
-using System.Text.Json;
 
 namespace R3EServerRaceResult.Services.ChampionshipGrouping
 {
     public class RaceCountGroupingStrategy : IChampionshipGroupingStrategy
     {
         private readonly int racesPerChampionship;
-        private readonly DateTime? championshipStartDate;
-        private readonly string stateFilePath;
-        private readonly Dictionary<string, int> raceCountTracker = [];
-        private readonly Lock @lock = new();
+        private readonly IRaceCountRepository repository;
+        private readonly ILogger<RaceCountGroupingStrategy> logger;
+        private readonly SemaphoreSlim semaphore = new(1, 1);
+        private readonly Dictionary<int, int> raceCountCache = [];
 
-        public RaceCountGroupingStrategy(int racesPerChampionship, DateTime? championshipStartDate, string mountedVolumePath)
+        public RaceCountGroupingStrategy(
+            int racesPerChampionship,
+            IRaceCountRepository repository,
+            ILogger<RaceCountGroupingStrategy> logger)
         {
             if (racesPerChampionship <= 0)
             {
@@ -19,151 +22,146 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
             }
 
             this.racesPerChampionship = racesPerChampionship;
-            this.championshipStartDate = championshipStartDate;
-            stateFilePath = Path.Combine(mountedVolumePath, ".racecount_state.json");
+            this.repository = repository;
+            this.logger = logger;
 
-            LoadState();
+            LoadCacheAsync().GetAwaiter().GetResult();
+            ValidateConfigurationAsync().GetAwaiter().GetResult();
         }
 
-        public string GetChampionshipKey(Result raceResult)
+        public async Task<string> GetChampionshipKeyAsync(Result raceResult)
         {
-            var championshipNumber = GetChampionshipNumber(raceResult.StartTime);
+            var championshipNumber = await GetChampionshipNumberAsync(raceResult.StartTime);
             var year = raceResult.StartTime.Year;
             return $"{year}-C{championshipNumber:D2}";
         }
 
-        public string GetEventName(Result raceResult)
+        public async Task<string> GetEventNameAsync(Result raceResult)
         {
             var year = raceResult.StartTime.Year;
-            var championshipNumber = GetChampionshipNumber(raceResult.StartTime);
-            int raceNumber;
-            lock (@lock)
+            var championshipNumber = await GetChampionshipNumberAsync(raceResult.StartTime);
+            
+            await semaphore.WaitAsync();
+            try
             {
-                raceNumber = GetRaceNumber(year);
-                IncrementRaceCount(year);
+                var raceNumber = await GetRaceNumberAsync(year);
+                await IncrementRaceCountAsync(year);
+                return $"Championship {championshipNumber} - Race {raceNumber} ({year})";
             }
-
-            return $"Championship {championshipNumber} - Race {raceNumber} ({year})";
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
-        public string GetSummaryFolder(Result raceResult)
+        public async Task<string> GetSummaryFolderAsync(Result raceResult)
         {
             var year = raceResult.StartTime.Year;
-            var championshipNumber = GetChampionshipNumber(raceResult.StartTime);
+            var championshipNumber = await GetChampionshipNumberAsync(raceResult.StartTime);
             return Path.Combine(year.ToString(), $"champ{championshipNumber}");
         }
 
-        private int GetChampionshipNumber(DateTime raceDate)
+        private async Task<int> GetChampionshipNumberAsync(DateTime raceDate)
         {
             var raceYear = raceDate.Year;
-            var raceYearKey = raceYear.ToString();
-
-            if (championshipStartDate == null)
-            {
-                lock (@lock)
-                {
-                    if (!raceCountTracker.ContainsKey(raceYearKey))
-                    {
-                        raceCountTracker[raceYearKey] = 0;
-                    }
-
-                    return (raceCountTracker[raceYearKey] / racesPerChampionship) + 1;
-                }
-            }
-
-            var startDate = championshipStartDate.Value;
-            if (raceDate.Date < startDate.Date)
-            {
-                return 1;
-            }
-
-            lock (@lock)
-            {
-                if (!raceCountTracker.ContainsKey(raceYearKey))
-                {
-                    raceCountTracker[raceYearKey] = 0;
-                }
-
-                return (raceCountTracker[raceYearKey] / racesPerChampionship) + 1;
-            }
+            var count = await GetCachedRaceCountAsync(raceYear);
+            return (count / racesPerChampionship) + 1;
         }
 
-        private int GetRaceNumber(int year)
+        private async Task<int> GetRaceNumberAsync(int year)
         {
-            var yearKey = year.ToString();
-
-            lock (@lock)
-            {
-                if (!raceCountTracker.ContainsKey(yearKey))
-                {
-                    raceCountTracker[yearKey] = 0;
-                }
-
-                return (raceCountTracker[yearKey] % racesPerChampionship) + 1;
-            }
+            var count = await GetCachedRaceCountAsync(year);
+            return (count % racesPerChampionship) + 1;
         }
 
-        private void IncrementRaceCount(int year)
-        {
-            var yearKey = year.ToString();
-
-            lock (@lock)
-            {
-                if (!raceCountTracker.ContainsKey(yearKey))
-                {
-                    raceCountTracker[yearKey] = 0;
-                }
-
-                raceCountTracker[yearKey]++;
-                SaveState(); //TODO: Rework this to use a SQLLite DB
-            }
-        }
-
-        private void LoadState() //TODO: Rework this to use a SQLLite DB
-        {
-            lock (@lock)
-            {
-                try
-                {
-                    if (File.Exists(stateFilePath))
-                    {
-                        var json = File.ReadAllText(stateFilePath);
-                        var state = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
-                        if (state != null)
-                        {
-                            foreach (var kvp in state)
-                            {
-                                raceCountTracker[kvp.Key] = kvp.Value;
-                            }
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // If state file is corrupted, start fresh
-                    raceCountTracker.Clear();
-                }
-            }
-        }
-
-        private void SaveState() //TODO: Rework this to use a SQLLite DB
+        private async Task IncrementRaceCountAsync(int year)
         {
             try
             {
-                var tempPath = stateFilePath + ".tmp";
-                var json = JsonSerializer.Serialize(raceCountTracker, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(tempPath, json);
+                var newCount = await repository.IncrementRaceCountAsync(year, racesPerChampionship);
+                raceCountCache[year] = newCount;
 
-                if (File.Exists(stateFilePath))
+                if (logger.IsEnabled(LogLevel.Debug))
                 {
-                    File.Delete(stateFilePath);
+                    logger.LogDebug("Race count incremented for year {Year}: {Count}", year, newCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Error incrementing race count for year {Year}", year);
+                }
+                throw;
+            }
+        }
+
+        private async Task<int> GetCachedRaceCountAsync(int year)
+        {
+            if (raceCountCache.TryGetValue(year, out var count))
+            {
+                return count;
+            }
+
+            var state = await repository.GetByYearAsync(year);
+            count = state?.RaceCount ?? 0;
+            raceCountCache[year] = count;
+            return count;
+        }
+
+        private async Task LoadCacheAsync()
+        {
+            try
+            {
+                var allCounts = await repository.GetAllRaceCountsAsync();
+                foreach (var kvp in allCounts)
+                {
+                    raceCountCache[kvp.Key] = kvp.Value;
                 }
 
-                File.Move(tempPath, stateFilePath);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Loaded {Count} race count states from database", allCounts.Count);
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Log error if needed, but don't throw to avoid breaking race result upload
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Error loading race count cache from database");
+                }
+            }
+        }
+
+        private async Task ValidateConfigurationAsync()
+        {
+            var currentYear = DateTime.UtcNow.Year;
+            
+            // Check current year and next year (in case races span year boundary)
+            for (int year = currentYear; year <= currentYear + 1; year++)
+            {
+                var isValid = await repository.ValidateConfigurationAsync(year, racesPerChampionship);
+                
+                if (!isValid)
+                {
+                    var state = await repository.GetByYearAsync(year);
+                    
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning(
+                            "Configuration mismatch detected for year {Year}. " +
+                            "Database: {OldRaces} races/championship. " +
+                            "Current: {NewRaces} races/championship. " +
+                            "Race count will be reset to 0 to start fresh with new configuration.",
+                            year,
+                            state?.RacesPerChampionship,
+                            racesPerChampionship);
+                    }
+
+                    // Reset counter for this year due to configuration change
+                    await repository.ResetCountForYearAsync(year, racesPerChampionship, "Configuration change detected on startup");
+                    raceCountCache[year] = 0;
+                }
             }
         }
     }

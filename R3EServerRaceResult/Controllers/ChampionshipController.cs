@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using R3EServerRaceResult.Models;
 using R3EServerRaceResult.Services;
 using R3EServerRaceResult.Settings;
+using R3EServerRaceResult.Data.Repositories;
 using System.Net;
 
 namespace R3EServerRaceResult.Controllers
@@ -12,15 +13,18 @@ namespace R3EServerRaceResult.Controllers
     public class ChampionshipController : ControllerBase
     {
         private readonly ChampionshipConfigurationStore configStore;
+        private readonly IRaceCountRepository raceCountRepository;
         private readonly FileStorageAppSettings fileStorageSettings;
         private readonly ILogger<ChampionshipController> logger;
 
         public ChampionshipController(
             ChampionshipConfigurationStore configStore,
+            IRaceCountRepository raceCountRepository,
             IOptions<FileStorageAppSettings> fileStorageSettings,
             ILogger<ChampionshipController> logger)
         {
             this.configStore = configStore;
+            this.raceCountRepository = raceCountRepository;
             this.fileStorageSettings = fileStorageSettings.Value;
             this.logger = logger;
         }
@@ -35,14 +39,16 @@ namespace R3EServerRaceResult.Controllers
             return Ok(fileStorageSettings.GroupingStrategy.ToString());
         }
 
+        #region Custom Strategy Endpoints
+
         /// <summary>
         /// Get all championship configurations
         /// </summary>
         [HttpGet("configurations")]
         [ProducesResponseType(typeof(List<ChampionshipConfigurationResponse>), (int)HttpStatusCode.OK)]
-        public IActionResult GetAll([FromQuery] bool includeExpired = true)
+        public async Task<IActionResult> GetAll([FromQuery] bool includeExpired = true)
         {
-            var configurations = configStore.GetAllConfigurations(includeExpired);
+            var configurations = await configStore.GetAllConfigurationsAsync(includeExpired);
             var responses = configurations.Select(MapToResponse).ToList();
             return Ok(responses);
         }
@@ -53,9 +59,9 @@ namespace R3EServerRaceResult.Controllers
         [HttpGet("configurations/{id}")]
         [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.OK)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
-        public IActionResult GetById(string id)
+        public async Task<IActionResult> GetById(string id)
         {
-            var config = configStore.GetConfigurationById(id);
+            var config = await configStore.GetConfigurationByIdAsync(id);
             if (config == null)
             {
                 return NotFound($"Championship configuration with ID '{id}' not found");
@@ -71,7 +77,7 @@ namespace R3EServerRaceResult.Controllers
         [ProducesResponseType(typeof(ChampionshipConfigurationResponse), (int)HttpStatusCode.Created)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
-        public IActionResult Create([FromBody] CreateChampionshipConfigurationRequest request)
+        public async Task<IActionResult> Create([FromBody] CreateChampionshipConfigurationRequest request)
         {
             if (request == null)
             {
@@ -88,11 +94,10 @@ namespace R3EServerRaceResult.Controllers
                 Name = request.Name,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
-            var (success, errorMessage) = configStore.AddConfiguration(config);
+            var (success, errorMessage) = await configStore.AddConfigurationAsync(config);
             if (!success)
             {
                 if (logger.IsEnabled(LogLevel.Warning))
@@ -118,7 +123,7 @@ namespace R3EServerRaceResult.Controllers
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
-        public IActionResult Update(string id, [FromBody] UpdateChampionshipConfigurationRequest request)
+        public async Task<IActionResult> Update(string id, [FromBody] UpdateChampionshipConfigurationRequest request)
         {
             if (request == null)
             {
@@ -128,24 +133,23 @@ namespace R3EServerRaceResult.Controllers
             var result = ValidateCustomStrategy();
             if (result != null) return result;
 
-            var existing = configStore.GetConfigurationById(id);
+            var existing = await configStore.GetConfigurationByIdAsync(id);
             if (existing == null)
             {
                 return NotFound($"Championship configuration with ID '{id}' not found");
             }
 
-            // Update only allowed fields
+            // Update only allowed fields (IsActive is now computed, not stored)
             var config = new ChampionshipConfiguration
             {
                 Id = existing.Id,
                 Name = request.Name,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,
-                IsActive = request.IsActive,
                 CreatedAt = existing.CreatedAt
             };
 
-            var (success, errorMessage) = configStore.UpdateConfiguration(id, config);
+            var (success, errorMessage) = await configStore.UpdateConfigurationAsync(id, config);
             if (!success)
             {
                 if (logger.IsEnabled(LogLevel.Warning))
@@ -170,12 +174,12 @@ namespace R3EServerRaceResult.Controllers
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             var result = ValidateCustomStrategy();
             if (result != null) return result;
 
-            var success = configStore.RemoveConfiguration(id);
+            var success = await configStore.RemoveConfigurationAsync(id);
             if (!success)
             {
                 return NotFound($"Championship configuration with ID '{id}' not found");
@@ -189,13 +193,139 @@ namespace R3EServerRaceResult.Controllers
             return NoContent();
         }
 
+        #endregion
+
+        #region RaceCount Strategy Endpoints
+
+        /// <summary>
+        /// Get all race count states for all years
+        /// </summary>
+        [HttpGet("racecount")]
+        [ProducesResponseType(typeof(List<RaceCountStateResponse>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
+        public async Task<IActionResult> GetAllRaceCountStates()
+        {
+            var result = ValidateRaceCountStrategy();
+            if (result != null) return result;
+
+            var allStates = await raceCountRepository.GetAllRaceCountsAsync();
+            var responses = new List<RaceCountStateResponse>();
+
+            foreach (var kvp in allStates.OrderBy(x => x.Key))
+            {
+                var state = await raceCountRepository.GetByYearAsync(kvp.Key);
+                if (state != null)
+                {
+                    var currentChampionship = (state.RaceCount / state.RacesPerChampionship) + 1;
+                    var nextRaceNumber = (state.RaceCount % state.RacesPerChampionship) + 1;
+
+                    responses.Add(new RaceCountStateResponse(
+                        Year: state.Year,
+                        RaceCount: state.RaceCount,
+                        RacesPerChampionship: state.RacesPerChampionship,
+                        CurrentChampionship: $"{state.Year}-C{currentChampionship:D2}",
+                        NextRaceNumber: nextRaceNumber,
+                        LastUpdated: state.LastUpdated
+                    ));
+                }
+            }
+
+            return Ok(responses);
+        }
+
+        /// <summary>
+        /// Get current race count state for a specific year
+        /// </summary>
+        [HttpGet("racecount/{year}")]
+        [ProducesResponseType(typeof(RaceCountStateResponse), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
+        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
+        public async Task<IActionResult> GetRaceCountState(int year)
+        {
+            var result = ValidateRaceCountStrategy();
+            if (result != null) return result;
+
+            var state = await raceCountRepository.GetByYearAsync(year);
+            if (state == null)
+            {
+                return NotFound($"No race count data found for year {year}");
+            }
+
+            var currentChampionship = (state.RaceCount / state.RacesPerChampionship) + 1;
+            var nextRaceNumber = (state.RaceCount % state.RacesPerChampionship) + 1;
+
+            var response = new RaceCountStateResponse(
+                Year: state.Year,
+                RaceCount: state.RaceCount,
+                RacesPerChampionship: state.RacesPerChampionship,
+                CurrentChampionship: $"{year}-C{currentChampionship:D2}",
+                NextRaceNumber: nextRaceNumber,
+                LastUpdated: state.LastUpdated
+            );
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Reset race counter for a specific year to start a new championship
+        /// </summary>
+        [HttpPost("racecount/reset")]
+        [ProducesResponseType(typeof(ResetRaceCountResponse), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType(typeof(object), (int)HttpStatusCode.NotImplemented)]
+        public async Task<IActionResult> ResetRaceCount([FromBody] ResetRaceCountRequest request)
+        {
+            var result = ValidateRaceCountStrategy();
+            if (result != null) return result;
+
+            // Default to current year if not specified
+            var year = request.Year ?? DateTime.UtcNow.Year;
+
+            if (year < 2000 || year > 2100)
+            {
+                return BadRequest("Year must be between 2000 and 2100");
+            }
+
+            // Get current state before reset
+            var currentState = await raceCountRepository.GetByYearAsync(year);
+            var previousCount = currentState?.RaceCount ?? 0;
+            var previousChampionship = currentState != null 
+                ? $"{year}-C{(currentState.RaceCount / currentState.RacesPerChampionship) + 1:D2}"
+                : null;
+
+            // Reset the counter
+            await raceCountRepository.ResetCountForYearAsync(year, fileStorageSettings.RacesPerChampionship, request.Reason);
+
+            var response = new ResetRaceCountResponse(
+                Year: year,
+                PreviousCount: previousCount,
+                NewCount: 0,
+                PreviousChampionship: previousChampionship,
+                NextChampionship: $"{year}-C01",
+                Message: $"Race counter reset for year {year}. Next race will start Championship 1."
+            );
+
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                var reasonLog = !string.IsNullOrEmpty(request.Reason) ? $" Reason: {request.Reason}" : "";
+                logger.LogInformation("Race counter manually reset for year {Year} from {OldCount} to 0 via API.{Reason}", 
+                    year, previousCount, reasonLog);
+            }
+
+            return Ok(response);
+        }
+
+        #endregion
+
+        #region Validation Helpers
+
         private ObjectResult? ValidateCustomStrategy()
         {
             if (fileStorageSettings.GroupingStrategy != GroupingStrategyType.Custom)
             {
                 if (logger.IsEnabled(LogLevel.Warning))
                 {
-                    logger.LogWarning("Attempted to create championship configuration but Custom strategy is not active. Current strategy: {Strategy}",
+                    logger.LogWarning("Attempted to access Custom strategy endpoint but Custom strategy is not active. Current strategy: {Strategy}",
                         fileStorageSettings.GroupingStrategy);
                 }
 
@@ -209,6 +339,30 @@ namespace R3EServerRaceResult.Controllers
             return null;
         }
 
+        private ObjectResult? ValidateRaceCountStrategy()
+        {
+            if (fileStorageSettings.GroupingStrategy != GroupingStrategyType.RaceCount)
+            {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Attempted to access RaceCount strategy endpoint but RaceCount strategy is not active. Current strategy: {Strategy}",
+                        fileStorageSettings.GroupingStrategy);
+                }
+
+                return StatusCode((int)HttpStatusCode.NotImplemented, new
+                {
+                    error = "RaceCount strategy not active",
+                    message = $"Current grouping strategy is '{fileStorageSettings.GroupingStrategy}'. Please change the GroupingStrategy to 'RaceCount' in appsettings.json to use race count endpoints.",
+                    currentStrategy = fileStorageSettings.GroupingStrategy.ToString()
+                });
+            }
+            return null;
+        }
+
+        #endregion
+
+        #region Mappers
+
         private static ChampionshipConfigurationResponse MapToResponse(ChampionshipConfiguration config)
         {
             return new ChampionshipConfigurationResponse(
@@ -221,5 +375,7 @@ namespace R3EServerRaceResult.Controllers
                 IsExpired: config.IsExpired
             );
         }
+
+        #endregion
     }
 }
