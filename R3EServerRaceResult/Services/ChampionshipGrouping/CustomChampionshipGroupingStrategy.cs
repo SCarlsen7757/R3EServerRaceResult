@@ -3,48 +3,58 @@ using System.Text.RegularExpressions;
 
 namespace R3EServerRaceResult.Services.ChampionshipGrouping
 {
-    public partial class CustomChampionshipGroupingStrategy : IChampionshipGroupingStrategy
+    public partial class CustomChampionshipGroupingStrategy : IChampionshipGroupingStrategy, IDisposable
     {
-        private readonly ChampionshipConfigurationStore configurationStore;
         private readonly ILogger<CustomChampionshipGroupingStrategy> logger;
+        private readonly ChampionshipConfigurationStore configurationStore;
+        private readonly SemaphoreSlim semaphore = new(1, 1);
 
         public CustomChampionshipGroupingStrategy(
-            ChampionshipConfigurationStore configurationStore,
-            ILogger<CustomChampionshipGroupingStrategy> logger)
+            ILogger<CustomChampionshipGroupingStrategy> logger,
+            ChampionshipConfigurationStore configurationStore
+            )
         {
-            this.configurationStore = configurationStore;
             this.logger = logger;
+            this.configurationStore = configurationStore;
         }
 
-        public string GetChampionshipKey(Result raceResult)
+        private volatile bool disposed = false;
+        public void Dispose()
         {
-            var config = GetOrCreateConfiguration(raceResult);
+            if (disposed) return;
+            disposed = true;
+            semaphore.Dispose();
+            GC.SuppressFinalize(this);
+        }
+
+        public async Task<string> GetChampionshipKeyAsync(Result raceResult)
+        {
+            var config = await GetOrCreateConfigurationAsync(raceResult);
             return config.Id;
         }
 
-        public string GetEventName(Result raceResult)
+        public async Task<string> GetEventNameAsync(Result raceResult)
         {
-            var config = GetOrCreateConfiguration(raceResult);
+            var config = await GetOrCreateConfigurationAsync(raceResult);
             return config.Name;
         }
 
-        public string GetSummaryFolder(Result raceResult)
+        public async Task<string> GetSummaryFolderAsync(Result raceResult)
         {
-            var config = GetOrCreateConfiguration(raceResult);
+            var config = await GetOrCreateConfigurationAsync(raceResult);
 
             // Create a safe folder name from championship name
             var safeName = SafeFolderNameRegex().Replace(config.Name, "_");
             return Path.Combine(config.StartDate.Year.ToString(), "custom-championships", $"{safeName}_{config.Id}");
         }
 
-        private static readonly Lock configurationLock = new();
-
-        private Models.ChampionshipConfiguration GetOrCreateConfiguration(Result raceResult)
+        private async Task<Models.ChampionshipConfiguration> GetOrCreateConfigurationAsync(Result raceResult)
         {
-            // All logic inside a lock to prevent TOCTOU race condition
-            lock (configurationLock)
+            // Use semaphore to prevent race conditions
+            await semaphore.WaitAsync();
+            try
             {
-                var config = configurationStore.GetConfigurationForDate(raceResult.StartTime);
+                var config = await configurationStore.GetConfigurationForDateAsync(raceResult.StartTime);
 
                 if (config != null)
                 {
@@ -59,11 +69,10 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
                     Name = $"Race {raceResult.StartTime:yyyy-MM-dd HH:mm}",
                     StartDate = raceDate,
                     EndDate = raceDate,
-                    IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
 
-                var (success, errorMessage) = configurationStore.AddConfiguration(newConfig);
+                var (success, errorMessage) = await configurationStore.AddConfigurationAsync(newConfig);
 
                 if (!success)
                 {
@@ -74,7 +83,7 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
                     }
 
                     // If auto-creation fails (e.g., overlap), try to find the existing one again
-                    config = configurationStore.GetConfigurationForDate(raceResult.StartTime);
+                    config = await configurationStore.GetConfigurationForDateAsync(raceResult.StartTime);
                     if (config != null)
                     {
                         return config;
@@ -91,6 +100,10 @@ namespace R3EServerRaceResult.Services.ChampionshipGrouping
                 }
 
                 return newConfig;
+            }
+            finally
+            {
+                semaphore.Release();
             }
         }
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using R3EServerRaceResult.Settings;
+using R3EServerRaceResult.Data.Repositories;
 using System.Net;
 using System.Text.Json;
 using System.Web;
@@ -9,11 +10,24 @@ namespace R3EServerRaceResult.Controllers
 {
     [Route("api/summaries")]
     [ApiController]
-    public class SimResultController(ILogger<SimResultController> logger, IOptions<ChampionshipAppSettings> settings, IOptions<FileStorageAppSettings> fileStorageAppSettings) : ControllerBase
+    public class SimResultController : ControllerBase
     {
-        private readonly ChampionshipAppSettings settings = settings.Value;
-        private readonly FileStorageAppSettings fileStorageAppSettings = fileStorageAppSettings.Value;
-        private readonly ILogger<SimResultController> logger = logger;
+        private readonly ChampionshipAppSettings settings;
+        private readonly FileStorageAppSettings fileStorageAppSettings;
+        private readonly ILogger<SimResultController> logger;
+        private readonly ISummaryFileRepository summaryFileRepository;
+
+        public SimResultController(
+            ILogger<SimResultController> logger,
+            IOptions<ChampionshipAppSettings> settings,
+            IOptions<FileStorageAppSettings> fileStorageAppSettings,
+            ISummaryFileRepository summaryFileRepository)
+        {
+            this.settings = settings.Value;
+            this.fileStorageAppSettings = fileStorageAppSettings.Value;
+            this.logger = logger;
+            this.summaryFileRepository = summaryFileRepository;
+        }
 
         private readonly JsonSerializerOptions jsonSerializerOption = new()
         {
@@ -22,28 +36,81 @@ namespace R3EServerRaceResult.Controllers
 
         [HttpGet("urls")]
         [ProducesResponseType(typeof(IList<string>), (int)HttpStatusCode.OK)]
-        public IActionResult GetUrls()
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> GetUrls([FromQuery] int? year = null, [FromQuery] string? strategy = null)
         {
             List<string> urls = [];
 
-            var files = Directory.GetFiles(fileStorageAppSettings.MountedVolumePath,
-                                           $"{fileStorageAppSettings.ResultFileName}.json",
-                                           SearchOption.AllDirectories);
-            foreach (var file in files)
+            // Parse strategy if provided
+            GroupingStrategyType? strategyEnum = null;
+            if (!string.IsNullOrEmpty(strategy))
             {
-                if (file.StartsWith(fileStorageAppSettings.MountedVolumePath))
+                if (!Enum.TryParse<GroupingStrategyType>(strategy, true, out var parsedStrategy))
                 {
-                    string webPath = file[fileStorageAppSettings.MountedVolumePath.Length..];
-                    string url = $"simresults.net/remote?results={HttpUtility.UrlEncode($"{settings.WebServer}{webPath}")}";
-                    urls.Add(url);
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Invalid strategy value provided: {Strategy}", strategy);
+                    }
+                    return BadRequest($"Invalid strategy '{strategy}'. Valid values are: {string.Join(", ", Enum.GetNames<GroupingStrategyType>())}");
                 }
+                strategyEnum = parsedStrategy;
             }
+
+            // Query database for summary files
+            var summaries = await summaryFileRepository.GetAllAsync(year, strategyEnum);
+
+            foreach (var summary in summaries)
+            {
+                string url = $"simresults.net/remote?results={HttpUtility.UrlEncode($"{settings.WebServer}/{summary.FilePath}")}";
+                urls.Add(url);
+            }
+
             if (logger.IsEnabled(LogLevel.Information))
             {
-                logger.LogInformation("Sim result URLs: [{Urls}]", string.Join(", ", urls));
+                logger.LogInformation("Retrieved {Count} summary URLs from database (Year: {Year}, Strategy: {Strategy})", 
+                    urls.Count, year?.ToString() ?? "all", strategy ?? "all");
             }
 
             return Ok(urls);
+        }
+
+        [HttpGet("paths")]
+        [ProducesResponseType(typeof(IList<string>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> GetPaths([FromQuery] int? year = null, [FromQuery] string? strategy = null)
+        {
+            List<string> paths = [];
+
+            // Parse strategy if provided
+            GroupingStrategyType? strategyEnum = null;
+            if (!string.IsNullOrEmpty(strategy))
+            {
+                if (!Enum.TryParse<GroupingStrategyType>(strategy, true, out var parsedStrategy))
+                {
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Invalid strategy value provided: {Strategy}", strategy);
+                    }
+                    return BadRequest($"Invalid strategy '{strategy}'. Valid values are: {string.Join(", ", Enum.GetNames<GroupingStrategyType>())}");
+                }
+                strategyEnum = parsedStrategy;
+            }
+
+            // Query database for summary files
+            var summaries = await summaryFileRepository.GetAllAsync(year, strategyEnum);
+
+            foreach (var summary in summaries)
+            {
+                paths.Add(summary.FilePath);
+            }
+
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Retrieved {Count} summary file paths from database (Year: {Year}, Strategy: {Strategy})", 
+                    paths.Count, year?.ToString() ?? "all", strategy ?? "all");
+            }
+
+            return Ok(paths);
         }
 
         [HttpGet("config")]

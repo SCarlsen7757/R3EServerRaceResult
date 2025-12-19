@@ -1,11 +1,12 @@
 using R3EServerRaceResult.Models.R3EServerResult;
+using System.Threading.Tasks;
 
 namespace R3EServerRaceResult.Services.ChampionshipGrouping
 {
     public interface IChampionshipGroupingStrategy
     {
-        string GetChampionshipKey(Result raceResult);
-        string GetEventName(Result raceResult);
-        string GetSummaryFolder(Result raceResult);
+        Task<string> GetChampionshipKeyAsync(Result raceResult);
+        Task<string> GetEventNameAsync(Result raceResult);
+        Task<string> GetSummaryFolderAsync(Result raceResult);
     }
 }

@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using R3EServerRaceResult.Data;
+using R3EServerRaceResult.Data.Repositories;
 using R3EServerRaceResult.Services.ChampionshipGrouping;
 using R3EServerRaceResult.Settings;
 
@@ -50,26 +53,42 @@ builder.Services.Configure<FileStorageAppSettings>(options =>
     }
 });
 
-builder.Services.AddSingleton(sp =>
+// Register DbContext with SQLite
+builder.Services.AddDbContext<ChampionshipDbContext>((serviceProvider, options) =>
 {
-    var fileStorageSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
-    var logger = sp.GetRequiredService<ILogger<R3EServerRaceResult.Services.ChampionshipConfigurationStore>>();
-    return new R3EServerRaceResult.Services.ChampionshipConfigurationStore(fileStorageSettings.MountedVolumePath, logger);
+    var fileStorageSettings = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
+    var connectionString = fileStorageSettings.DatabaseConnectionString;
+
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("DatabaseConnectionString is required but not configured. Application cannot start.");
+    }
+
+    options.UseSqlite(connectionString);
 });
 
-builder.Services.AddSingleton<IChampionshipGroupingStrategy>(sp =>
+// Register repositories as scoped
+builder.Services.AddScoped<IChampionshipRepository, ChampionshipRepository>();
+builder.Services.AddScoped<IRaceCountRepository, RaceCountRepository>();
+builder.Services.AddScoped<ISummaryFileRepository, SummaryFileRepository>();
+
+// Register services
+builder.Services.AddScoped<R3EServerRaceResult.Services.ChampionshipConfigurationStore>();
+
+// Register IChampionshipGroupingStrategy as scoped to support async/database operations
+builder.Services.AddScoped<IChampionshipGroupingStrategy>(sp =>
 {
     var fileStorageSettings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
 
     return fileStorageSettings.GroupingStrategy switch
     {
         GroupingStrategyType.RaceCount => new RaceCountGroupingStrategy(
+            sp.GetRequiredService<ILogger<RaceCountGroupingStrategy>>(),
             fileStorageSettings.RacesPerChampionship,
-            fileStorageSettings.ChampionshipStartDate,
-            fileStorageSettings.MountedVolumePath),
+            sp.GetRequiredService<IRaceCountRepository>()),
         GroupingStrategyType.Custom => new CustomChampionshipGroupingStrategy(
-            sp.GetRequiredService<R3EServerRaceResult.Services.ChampionshipConfigurationStore>(),
-            sp.GetRequiredService<ILogger<CustomChampionshipGroupingStrategy>>()),
+            sp.GetRequiredService<ILogger<CustomChampionshipGroupingStrategy>>(),
+            sp.GetRequiredService<R3EServerRaceResult.Services.ChampionshipConfigurationStore>()),
         _ => new MonthlyGroupingStrategy()
     };
 });
@@ -80,6 +99,30 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
+
+// Ensure database is created
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ChampionshipDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        dbContext.Database.EnsureCreated();
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Database initialized successfully");
+        }
+    }
+    catch (Exception ex)
+    {
+        if (logger.IsEnabled(LogLevel.Error))
+        {
+            logger.LogError(ex, "Error initializing database");
+        }
+    }
+}
 
 app.UseSwagger();
 app.UseSwaggerUI();
