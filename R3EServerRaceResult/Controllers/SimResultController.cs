@@ -36,14 +36,23 @@ namespace R3EServerRaceResult.Controllers
 
         [HttpGet("urls")]
         [ProducesResponseType(typeof(IList<string>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         public async Task<IActionResult> GetUrls([FromQuery] int? year = null, [FromQuery] string? strategy = null)
         {
             List<string> urls = [];
 
             // Parse strategy if provided
             GroupingStrategyType? strategyEnum = null;
-            if (!string.IsNullOrEmpty(strategy) && Enum.TryParse<GroupingStrategyType>(strategy, true, out var parsedStrategy))
+            if (!string.IsNullOrEmpty(strategy))
             {
+                if (!Enum.TryParse<GroupingStrategyType>(strategy, true, out var parsedStrategy))
+                {
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Invalid strategy value provided: {Strategy}", strategy);
+                    }
+                    return BadRequest($"Invalid strategy '{strategy}'. Valid values are: {string.Join(", ", Enum.GetNames<GroupingStrategyType>())}");
+                }
                 strategyEnum = parsedStrategy;
             }
 
@@ -63,6 +72,45 @@ namespace R3EServerRaceResult.Controllers
             }
 
             return Ok(urls);
+        }
+
+        [HttpGet("paths")]
+        [ProducesResponseType(typeof(IList<string>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        public async Task<IActionResult> GetPaths([FromQuery] int? year = null, [FromQuery] string? strategy = null)
+        {
+            List<string> paths = [];
+
+            // Parse strategy if provided
+            GroupingStrategyType? strategyEnum = null;
+            if (!string.IsNullOrEmpty(strategy))
+            {
+                if (!Enum.TryParse<GroupingStrategyType>(strategy, true, out var parsedStrategy))
+                {
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Invalid strategy value provided: {Strategy}", strategy);
+                    }
+                    return BadRequest($"Invalid strategy '{strategy}'. Valid values are: {string.Join(", ", Enum.GetNames<GroupingStrategyType>())}");
+                }
+                strategyEnum = parsedStrategy;
+            }
+
+            // Query database for summary files
+            var summaries = await summaryFileRepository.GetAllAsync(year, strategyEnum);
+
+            foreach (var summary in summaries)
+            {
+                paths.Add(summary.FilePath);
+            }
+
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Retrieved {Count} summary file paths from database (Year: {Year}, Strategy: {Strategy})", 
+                    paths.Count, year?.ToString() ?? "all", strategy ?? "all");
+            }
+
+            return Ok(paths);
         }
 
         [HttpGet("config")]

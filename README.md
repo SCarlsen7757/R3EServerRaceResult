@@ -392,6 +392,33 @@ GET /api/summaries/urls?year=2025&strategy=Custom
 ]
 ```
 
+#### Get Summary File Paths
+```http
+GET /api/summaries/paths?year={year}&strategy={strategy}
+```
+
+Returns list of local file paths for summary files. Use these paths with the config endpoints below.
+
+**Query Parameters:**
+- `year` (optional): Filter by year (e.g., `2025`)
+- `strategy` (optional): Filter by grouping strategy (`Monthly`, `RaceCount`, or `Custom`)
+
+**Examples:**
+```http
+GET /api/summaries/paths
+GET /api/summaries/paths?year=2025
+GET /api/summaries/paths?strategy=RaceCount
+```
+
+**Response:**
+```json
+[
+  "2025/champ1/summary.json",
+  "2025/champ2/summary.json",
+  "2024/12/summary.json"
+]
+```
+
 **Note:** Summary files are automatically indexed in the SQLite database for fast queries. The index includes:
 - File path
 - Championship key
@@ -399,6 +426,16 @@ GET /api/summaries/urls?year=2025&strategy=Custom
 - Year
 - Race count
 - Creation and update timestamps
+
+**Usage with Config Endpoints:**
+```http
+# 1. Get file paths
+GET /api/summaries/paths?year=2025
+
+# 2. Use path with config endpoints
+GET /api/summaries/config?summaryPath=2025/champ1/summary.json
+PUT /api/summaries/config?summaryPath=2025/champ1/summary.json
+```
 
 ## Database Schema Changes
 
