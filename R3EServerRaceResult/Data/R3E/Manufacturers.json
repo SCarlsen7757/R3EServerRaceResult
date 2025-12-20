@@ -1,0 +1,24 @@
+{
+  "Manufacturers": [
+    {
+      "Id": 7032,
+      "Name": "Alfa Romeo",
+      "CarIds": []
+    },
+    {
+      "Id": 2637,
+      "Name": "Alpina",
+      "CarIds": []
+    },
+    {
+      "Id": 2634,
+      "Name": "Aquila",
+      "CarIds": []
+    },
+    {
+      "Id": 2551,
+      "Name": "Audi",
+      "CarIds": []
+    }
+  ]
+}
