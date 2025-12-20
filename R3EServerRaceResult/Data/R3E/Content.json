@@ -175,7 +175,7 @@
     },
     {
       "Id": 1690,
-      "Name": "Nürburgring",
+      "Name": "Nï¿½rburgring",
       "Layouts": [
         {
           "Id": 1691,
@@ -215,7 +215,7 @@
         },
         {
           "Id": 9847,
-          "Name": "Müllenbachschleife",
+          "Name": "Mï¿½llenbachschleife",
           "Experiences": [
             2481
           ],
@@ -797,7 +797,7 @@
         },
         {
           "Id": 5794,
-          "Name": "Südschleife National Circuit",
+          "Name": "Sï¿½dschleife National Circuit",
           "Experiences": [
             2481
           ],
@@ -1114,7 +1114,7 @@
     },
     {
       "Id": 5924,
-      "Name": "Gelleråsen Arena",
+      "Name": "Gellerï¿½sen Arena",
       "Layouts": [
         {
           "Id": 5925,
@@ -1503,7 +1503,7 @@
     },
     {
       "Id": 8703,
-      "Name": "Motorland Aragón",
+      "Name": "Motorland Aragï¿½n",
       "Layouts": [
         {
           "Id": 8704,
@@ -1642,7 +1642,7 @@
     },
     {
       "Id": 9464,
-      "Name": "Vålerbanen",
+      "Name": "Vï¿½lerbanen",
       "Layouts": [
         {
           "Id": 9465,
@@ -6151,7 +6151,7 @@
     {
       "Car": {
         "Id": 2413,
-        "Name": "DTM Mercedes AMG C-Coupé",
+        "Name": "DTM Mercedes AMG C-Coupï¿½",
         "Class": 1921,
         "Experiences": [
           2481,
@@ -6684,7 +6684,7 @@
     {
       "Car": {
         "Id": 2804,
-        "Name": "SEAT León WTCC",
+        "Name": "SEAT Leï¿½n WTCC",
         "Class": 1922,
         "Experiences": [
           2481
@@ -22030,7 +22030,7 @@
     {
       "Car": {
         "Id": 8726,
-        "Name": "CUPRA Leon Competición",
+        "Name": "CUPRA Leon Competiciï¿½n",
         "Class": 8660,
         "Experiences": [
           2481
@@ -22826,7 +22826,7 @@
     {
       "Car": {
         "Id": 8788,
-        "Name": "CUPRA Leon Competición",
+        "Name": "CUPRA Leon Competiciï¿½n",
         "Class": 8656,
         "Experiences": [
           2481
@@ -24434,7 +24434,7 @@
     {
       "Car": {
         "Id": 9278,
-        "Name": "CUPRA Leon Competición",
+        "Name": "CUPRA Leon Competiciï¿½n",
         "Class": 9233,
         "Experiences": [
           2481
@@ -24502,7 +24502,7 @@
     {
       "Car": {
         "Id": 9467,
-        "Name": "Renault Mégane RS TCR",
+        "Name": "Renault Mï¿½gane RS TCR",
         "Class": 9233,
         "Experiences": [
           2481
@@ -27198,7 +27198,7 @@
     {
       "Car": {
         "Id": 10371,
-        "Name": "CUPRA Leon Competición",
+        "Name": "CUPRA Leon Competiciï¿½n",
         "Class": 10344,
         "Experiences": [
           2481
@@ -28898,7 +28898,7 @@
     {
       "Car": {
         "Id": 10896,
-        "Name": "Crosslé 90F",
+        "Name": "Crosslï¿½ 90F",
         "Class": 10899,
         "Experiences": [
           2481
@@ -29750,7 +29750,7 @@
     {
       "Car": {
         "Id": 11285,
-        "Name": "Crosslé 9S",
+        "Name": "Crosslï¿½ 9S",
         "Class": 11844,
         "Experiences": [
           2481
@@ -29962,7 +29962,7 @@
     {
       "Car": {
         "Id": 11323,
-        "Name": "CUPRA Leon Competición",
+        "Name": "CUPRA Leon Competiciï¿½n",
         "Class": 11317,
         "Experiences": [
           2481
@@ -33090,7 +33090,7 @@
     {
       "Car": {
         "Id": 12771,
-        "Name": "Lamborghini Huracán GT3 EVO II",
+        "Name": "Lamborghini Huracï¿½n GT3 EVO II",
         "Class": 1703,
         "Experiences": [
           2481
@@ -33322,7 +33322,7 @@
     {
       "Car": {
         "Id": 12795,
-        "Name": "Lamborghini Huracán GT3 EVO II DTM",
+        "Name": "Lamborghini Huracï¿½n GT3 EVO II DTM",
         "Class": 12770,
         "Experiences": [
           2481
@@ -34478,7 +34478,7 @@
     {
       "Car": {
         "Id": 13160,
-        "Name": "Lamborghini Huracán GT3 EVO II DTM",
+        "Name": "Lamborghini Huracï¿½n GT3 EVO II DTM",
         "Class": 13136,
         "Experiences": [
           2481
@@ -34994,7 +34994,7 @@
     {
       "Car": {
         "Id": 13323,
-        "Name": "Opel Astra V8 Coupé",
+        "Name": "Opel Astra V8 Coupï¿½",
         "Class": 13264,
         "Experiences": [
           2481
@@ -35391,7 +35391,7 @@
     },
     {
       "Id": 10899,
-      "Name": "Crosslé 90F"
+      "Name": "Crosslï¿½ 90F"
     },
     {
       "Id": 10909,
@@ -35427,7 +35427,7 @@
     },
     {
       "Id": 11844,
-      "Name": "Crosslé 9S"
+      "Name": "Crosslï¿½ 9S"
     },
     {
       "Id": 11990,
