@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using R3EServerRaceResult.Data;
 using R3EServerRaceResult.Data.Repositories;
+using R3EServerRaceResult.Services;
 using R3EServerRaceResult.Services.ChampionshipGrouping;
 using R3EServerRaceResult.Settings;
 
@@ -53,7 +54,7 @@ builder.Services.Configure<FileStorageAppSettings>(options =>
     }
 });
 
-// Register DbContext with SQLite
+// Register DbContext with SQLite (existing championship database)
 builder.Services.AddDbContext<ChampionshipDbContext>((serviceProvider, options) =>
 {
     var fileStorageSettings = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageAppSettings>>().Value;
@@ -66,6 +67,25 @@ builder.Services.AddDbContext<ChampionshipDbContext>((serviceProvider, options) 
 
     options.UseSqlite(connectionString);
 });
+
+// Register PostgreSQL DbContext for R3E content
+builder.Services.AddDbContext<R3EContentDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("R3EContentDatabase");
+
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("R3EContentDatabase connection string is required but not configured. Application cannot start.");
+    }
+
+    options.UseNpgsql(connectionString);
+});
+
+// Register data seeder
+builder.Services.AddScoped<R3EContentDataSeeder>();
+
+// Register PostgreSQL database initializer
+builder.Services.AddScoped<PostgresDatabaseInitializer>();
 
 // Register repositories as scoped
 builder.Services.AddScoped<IChampionshipRepository, ChampionshipRepository>();
@@ -103,24 +123,43 @@ var app = builder.Build();
 // Ensure database is created
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ChampionshipDbContext>();
+    var championshipDbContext = scope.ServiceProvider.GetRequiredService<ChampionshipDbContext>();
+    var r3eContentDbContext = scope.ServiceProvider.GetRequiredService<R3EContentDbContext>();
+    var postgresInitializer = scope.ServiceProvider.GetRequiredService<PostgresDatabaseInitializer>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
     try
     {
-        dbContext.Database.EnsureCreated();
+        // Initialize PostgreSQL databases (create if not exist)
+        await postgresInitializer.InitializeDatabasesAsync();
+
+        // Initialize championship database
+        championshipDbContext.Database.EnsureCreated();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Database initialized successfully");
+            logger.LogInformation("Championship database initialized successfully");
         }
+
+        // Initialize R3E content database and run migrations
+        await r3eContentDbContext.Database.MigrateAsync();
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("R3E content database initialized successfully");
+        }
+
+        // Seed R3E content data
+        var dataSeeder = scope.ServiceProvider.GetRequiredService<R3EContentDataSeeder>();
+        await dataSeeder.SeedDataAsync();
     }
     catch (Exception ex)
     {
         if (logger.IsEnabled(LogLevel.Error))
         {
-            logger.LogError(ex, "Error initializing database");
+            logger.LogError(ex, "Error initializing databases");
         }
+        throw;
     }
 }
 

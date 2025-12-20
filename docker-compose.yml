@@ -33,11 +33,15 @@ services:
       # NOTE: The database file path below is container-specific and relies on the `data:/app/data` volume mapping.
       # For local development outside Docker, override `FileStorage__DatabaseConnectionString` with an appropriate local path.
       - FileStorage__DatabaseConnectionString=Data Source=/app/data/championships.db
+      - ConnectionStrings__R3EContentDatabase=Host=postgres;Database=r3e_content;Username=postgres;Password=postgres
+      - R3EContent__BasePath=/app/Data/R3E
       - RaceStats__Enabled=false
       - RaceStats__CheckDataConsistency=true
       - RaceStats__DatabaseConnectionString=Host=postgres;Database=race_stats;Username=postgres;Password=postgres
     volumes:
       - simresult_data:/app/data
+    depends_on:
+      - postgres
     user: "0" # run as root
 
   staticserver:
@@ -61,19 +65,26 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USERNAME:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    depends_on:
+      - postgres
   
   postgres:
-    image: postgres:latest
+    image: postgres:16-alpine
     container_name: postgres-db
     restart: always
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-race_stats}
+      - POSTGRES_DB=postgres
     ports:
       - "8254:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   simresult_data:
