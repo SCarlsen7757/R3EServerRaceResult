@@ -87,6 +87,7 @@ erDiagram
         int id
         int driverId FK
         int sessionId FK
+        int lapNumber
         time lapTime
         time sector1Time
         time sector2Time
