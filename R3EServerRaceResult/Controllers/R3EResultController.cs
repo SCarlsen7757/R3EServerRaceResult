@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using R3EServerRaceResult.Data.Repositories;
 using R3EServerRaceResult.Models;
 using R3EServerRaceResult.Models.R3EServerResult;
+using R3EServerRaceResult.Services;
 using R3EServerRaceResult.Services.ChampionshipGrouping;
 using R3EServerRaceResult.Settings;
 using System.Net;
@@ -19,19 +20,22 @@ namespace R3EServerRaceResult.Controllers
         private readonly ILogger<R3EResultController> logger;
         private readonly IChampionshipGroupingStrategy groupingStrategy;
         private readonly ISummaryFileRepository summaryFileRepository;
+        private readonly RaceStatsService raceStatsService;
 
         public R3EResultController(
             ILogger<R3EResultController> logger,
             IOptions<ChampionshipAppSettings> settings,
             IOptions<FileStorageAppSettings> fileStorageAppSettings,
             IChampionshipGroupingStrategy groupingStrategy,
-            ISummaryFileRepository summaryFileRepository)
+            ISummaryFileRepository summaryFileRepository,
+            RaceStatsService raceStatsService)
         {
             this.settings = settings.Value;
             this.fileStorageAppSettings = fileStorageAppSettings.Value;
             this.logger = logger;
             this.groupingStrategy = groupingStrategy;
             this.summaryFileRepository = summaryFileRepository;
+            this.raceStatsService = raceStatsService;
         }
 
         private readonly JsonSerializerOptions jsonSerializerOption = new()
@@ -471,6 +475,24 @@ namespace R3EServerRaceResult.Controllers
                 }
 
                 await MakeSimResultSummary(Path.Combine(resultStoragePath, fileName), result);
+
+                try
+                {
+                    await raceStatsService.ProcessRaceResultAsync(result);
+                    if (logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogDebug("Race stats processed for result: {FileName}", diskRaceResultPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail the entire request if race stats fails
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning(ex, "Error processing race stats for result: {FileName}. Continuing...", diskRaceResultPath);
+                    }
+                }
+
                 return (true, null);
             }
             catch (Exception ex)

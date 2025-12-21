@@ -34,10 +34,8 @@ services:
       # For local development outside Docker, override `FileStorage__DatabaseConnectionString` with an appropriate local path.
       - FileStorage__DatabaseConnectionString=Data Source=/app/data/championships.db
       - ConnectionStrings__R3EContentDatabase=Host=postgres;Database=r3e_content;Username=postgres;Password=postgres
+      - ConnectionStrings__RaceStatsDatabase=Host=postgres;Database=race_stats;Username=postgres;Password=postgres
       - R3EContent__BasePath=/app/Data/R3E
-      - RaceStats__Enabled=false
-      - RaceStats__CheckDataConsistency=true
-      - RaceStats__DatabaseConnectionString=Host=postgres;Database=race_stats;Username=postgres;Password=postgres
     volumes:
       - simresult_data:/app/data
     depends_on:

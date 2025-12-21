@@ -81,6 +81,23 @@ builder.Services.AddDbContext<R3EContentDbContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
+// Register PostgreSQL DbContext for Race Stats (always enabled)
+builder.Services.AddDbContext<RaceStatsDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("RaceStatsDatabase");
+
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("RaceStatsDatabase connection string is required but not configured. Application cannot start.");
+    }
+
+    options.UseNpgsql(connectionString);
+});
+
+// Register Race Stats repository and service
+builder.Services.AddScoped<IRaceStatsRepository, RaceStatsRepository>();
+builder.Services.AddScoped<RaceStatsService>();
+
 // Register data seeder
 builder.Services.AddScoped<R3EContentDataSeeder>();
 
@@ -152,6 +169,15 @@ using (var scope = app.Services.CreateScope())
         // Seed R3E content data
         var dataSeeder = scope.ServiceProvider.GetRequiredService<R3EContentDataSeeder>();
         await dataSeeder.SeedDataAsync();
+
+        // Initialize Race Stats database (always enabled)
+        var raceStatsDbContext = scope.ServiceProvider.GetRequiredService<RaceStatsDbContext>();
+        await raceStatsDbContext.Database.MigrateAsync();
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Race Stats database initialized successfully");
+        }
     }
     catch (Exception ex)
     {
