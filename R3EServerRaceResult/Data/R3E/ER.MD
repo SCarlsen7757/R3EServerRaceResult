@@ -56,22 +56,23 @@ erDiagram
     Driver ||--|{ Incident : "Involved in incidents" 
 
     Driver {
-        int id
-        string name
+        int id "user id from r3e"
+        string name "Name shortend for privacy"
     }
     Event {
-        int id
+        int id "Auto generated id"
         int trackId FK
         int layoutId FK
         date eventDate
     }
     Session {
-        int id
+        int id "Auto generated id"
         int eventId FK
-        string sessionType
+        SessionType sessionType "Enum (Practice, Qualify or Race)"
+        int sessionNumber "For Practice and Qualify it 0. For Race its 1 to 3"
     }
     Result {
-        int id
+        int id "Auto generated id"
         int driverId FK
         int sessionId FK
         int carId FK
@@ -84,7 +85,7 @@ erDiagram
         int totalLaps 
     }
     Laps {
-        int id
+        int id "Auto generated id"
         int driverId FK
         int sessionId FK
         int lapNumber
@@ -95,11 +96,12 @@ erDiagram
         bool isValid
     }
     Incident {
-        int id
+        int id "Auto generated id"
         int driverId FK
         int sessionId FK  
-        string incidentType
+        IncidentType incidentType "Enum"
         int incidentPoints
         int lapNumber
-        int involvedDriverId FK 
+        int involvedDriverId FK "Null if its a solo incident"
     }
+```
