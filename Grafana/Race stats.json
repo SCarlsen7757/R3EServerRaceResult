@@ -141,7 +141,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 5,
+        "w": 3,
         "x": 11,
         "y": 0
       },
@@ -226,8 +226,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 5,
-        "x": 16,
+        "w": 4,
+        "x": 14,
         "y": 0
       },
       "id": 5,
@@ -402,8 +402,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 7,
-        "x": 4,
+        "w": 8,
+        "x": 3,
         "y": 8
       },
       "id": 2,
@@ -470,6 +470,178 @@
       "title": "Average Points",
       "transparent": true,
       "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "df7vcuon23saoa"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 11,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": []
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "dataset": "r3e_racing",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n    cars.name AS car_name,\r\n    COUNT(results.car_id) AS usage_count\r\nFROM\r\n    race_stats.results AS results\r\nJOIN\r\n    r3e_content.cars AS cars\r\nON\r\n    results.car_id = cars.id\r\nGROUP BY\r\n    cars.name\r\nORDER BY\r\n    usage_count DESC",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Most used Car",
+      "transparent": true,
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "df7vcuon23saoa"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 3,
+        "x": 15,
+        "y": 8
+      },
+      "id": 7,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": []
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "dataset": "r3e_racing",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n    manufacturers.name AS manufacturer_name,\r\n    COUNT(results.car_id) AS usage_count\r\nFROM\r\n    race_stats.results AS results\r\nJOIN\r\n    r3e_content.cars AS cars\r\nON\r\n    results.car_id = cars.id\r\nJOIN\r\n    r3e_content.manufacturers AS manufacturers\r\nON\r\n    cars.manufacturer_id = manufacturers.id\r\nGROUP BY\r\n    manufacturers.name\r\nORDER BY\r\n    usage_count DESC;\r\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "New panel",
+      "transparent": true,
+      "type": "piechart"
     }
   ],
   "preload": false,
@@ -486,5 +658,5 @@
   "timezone": "browser",
   "title": "Race stats",
   "uid": "ad2qpzq",
-  "version": 9
+  "version": 14
 }
