@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 0,
+  "id": 4,
   "links": [],
   "panels": [
     {
@@ -428,7 +428,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT d.name, AVG(r.class_position) AS avg_class_position\r\nFROM race_stats.results r\r\nJOIN race_stats.drivers d ON r.driver_id = d.id\r\nGROUP BY d.name\r\nORDER BY avg_class_position DESC",
+          "rawSql": "SELECT d.name, AVG(r.class_position) AS avg_class_position\r\nFROM race_stats.results r\r\nJOIN race_stats.drivers d ON r.driver_id = d.id\r\nGROUP BY d.name\r\nORDER BY avg_class_position ASC ",
           "refId": "A",
           "sql": {
             "columns": [
@@ -457,7 +457,7 @@
           "table": "race_stats.results"
         }
       ],
-      "title": "Average Points",
+      "title": "Average Race Position",
       "transparent": true,
       "type": "bargauge"
     },
@@ -640,5 +640,5 @@
   "timezone": "browser",
   "title": "Race stats",
   "uid": "ad2qpzq",
-  "version": 3
+  "version": 1
 }
