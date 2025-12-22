@@ -16,6 +16,7 @@ namespace R3EServerRaceResult.Data.Migrations.R3EContent
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("r3e_content")
                 .HasAnnotation("ProductVersion", "10.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -25,154 +26,183 @@ namespace R3EServerRaceResult.Data.Migrations.R3EContent
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ClassId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("class_id");
 
                     b.Property<int>("ManufacturerId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("manufacturer_id");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClassId");
+                    b.HasIndex("ClassId")
+                        .HasDatabaseName("ix_cars_class_id");
 
-                    b.HasIndex("Id");
+                    b.HasIndex("Id")
+                        .HasDatabaseName("ix_cars_id");
 
-                    b.HasIndex("ManufacturerId");
+                    b.HasIndex("ManufacturerId")
+                        .HasDatabaseName("ix_cars_manufacturer_id");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("ix_cars_name");
 
-                    b.ToTable("Cars");
+                    b.ToTable("cars", "r3e_content");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.R3EContent.CarClass", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("ix_car_classes_name");
 
-                    b.ToTable("CarClasses");
+                    b.ToTable("car_classes", "r3e_content");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.R3EContent.Layout", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("MaxVehicles")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("max_vehicles");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
 
                     b.Property<int>("TrackId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("track_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TrackId");
+                    b.HasIndex("TrackId")
+                        .HasDatabaseName("ix_layouts_track_id");
 
-                    b.ToTable("Layouts");
+                    b.ToTable("layouts", "r3e_content");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.R3EContent.Livery", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("CarId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("car_id");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CarId");
+                    b.HasIndex("CarId")
+                        .HasDatabaseName("ix_liveries_car_id");
 
-                    b.ToTable("Liveries");
+                    b.ToTable("liveries", "r3e_content");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.R3EContent.Manufacturer", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Country")
+                    b.Property<string>("CountryCode")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("ix_manufacturers_name");
 
-                    b.ToTable("Manufacturers");
+                    b.ToTable("manufacturers", "r3e_content");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.R3EContent.Track", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Location")
+                    b.Property<string>("CountryCode")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("ix_tracks_name");
 
-                    b.ToTable("Tracks");
+                    b.ToTable("tracks", "r3e_content");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.R3EContent.Car", b =>
@@ -181,13 +211,15 @@ namespace R3EServerRaceResult.Data.Migrations.R3EContent
                         .WithMany("Cars")
                         .HasForeignKey("ClassId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_cars_car_classes");
 
                     b.HasOne("R3EServerRaceResult.Models.R3EContent.Manufacturer", "Manufacturer")
                         .WithMany("Cars")
                         .HasForeignKey("ManufacturerId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_cars_manufacturers");
 
                     b.Navigation("Class");
 
@@ -200,7 +232,8 @@ namespace R3EServerRaceResult.Data.Migrations.R3EContent
                         .WithMany("Layouts")
                         .HasForeignKey("TrackId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_layouts_tracks");
 
                     b.Navigation("Track");
                 });
@@ -211,7 +244,8 @@ namespace R3EServerRaceResult.Data.Migrations.R3EContent
                         .WithMany("Liveries")
                         .HasForeignKey("CarId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_liveries_cars");
 
                     b.Navigation("Car");
                 });

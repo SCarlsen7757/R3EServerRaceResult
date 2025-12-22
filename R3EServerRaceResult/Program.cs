@@ -68,30 +68,24 @@ builder.Services.AddDbContext<ChampionshipDbContext>((serviceProvider, options) 
     options.UseSqlite(connectionString);
 });
 
-// Register PostgreSQL DbContext for R3E content
+// Get PostgreSQL connection string (single database for both contexts)
+var postgresConnectionString = builder.Configuration.GetConnectionString("PostgresDatabase");
+
+if (string.IsNullOrEmpty(postgresConnectionString))
+{
+    throw new InvalidOperationException("PostgresDatabase connection string is required but not configured. Application cannot start.");
+}
+
+// Register PostgreSQL DbContext for R3E content (uses r3econtent schema)
 builder.Services.AddDbContext<R3EContentDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("R3EContentDatabase");
-
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        throw new InvalidOperationException("R3EContentDatabase connection string is required but not configured. Application cannot start.");
-    }
-
-    options.UseNpgsql(connectionString);
+    options.UseNpgsql(postgresConnectionString);
 });
 
-// Register PostgreSQL DbContext for Race Stats (always enabled)
+// Register PostgreSQL DbContext for Race Stats (uses racestats schema)
 builder.Services.AddDbContext<RaceStatsDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("RaceStatsDatabase");
-
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        throw new InvalidOperationException("RaceStatsDatabase connection string is required but not configured. Application cannot start.");
-    }
-
-    options.UseNpgsql(connectionString);
+    options.UseNpgsql(postgresConnectionString);
 });
 
 // Register Race Stats repository and service
@@ -142,15 +136,16 @@ using (var scope = app.Services.CreateScope())
 {
     var championshipDbContext = scope.ServiceProvider.GetRequiredService<ChampionshipDbContext>();
     var r3eContentDbContext = scope.ServiceProvider.GetRequiredService<R3EContentDbContext>();
+    var raceStatsDbContext = scope.ServiceProvider.GetRequiredService<RaceStatsDbContext>();
     var postgresInitializer = scope.ServiceProvider.GetRequiredService<PostgresDatabaseInitializer>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
     try
     {
-        // Initialize PostgreSQL databases (create if not exist)
+        // Initialize PostgreSQL database and schemas (create if not exist)
         await postgresInitializer.InitializeDatabasesAsync();
 
-        // Initialize championship database
+        // Initialize championship database (SQLite)
         championshipDbContext.Database.EnsureCreated();
 
         if (logger.IsEnabled(LogLevel.Information))
@@ -158,7 +153,11 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation("Championship database initialized successfully");
         }
 
-        // Initialize R3E content database and run migrations
+        // Initialize R3E content database - run migrations
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Applying R3E content database migrations...");
+        }
         await r3eContentDbContext.Database.MigrateAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
@@ -166,12 +165,15 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation("R3E content database initialized successfully");
         }
 
-        // Seed R3E content data
+        // Sync R3E content data from JSON files (runs on every startup)
         var dataSeeder = scope.ServiceProvider.GetRequiredService<R3EContentDataSeeder>();
         await dataSeeder.SeedDataAsync();
 
-        // Initialize Race Stats database (always enabled)
-        var raceStatsDbContext = scope.ServiceProvider.GetRequiredService<RaceStatsDbContext>();
+        // Initialize Race Stats database - run migrations
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Applying Race Stats database migrations...");
+        }
         await raceStatsDbContext.Database.MigrateAsync();
 
         if (logger.IsEnabled(LogLevel.Information))

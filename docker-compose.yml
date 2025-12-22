@@ -33,13 +33,13 @@ services:
       # NOTE: The database file path below is container-specific and relies on the `data:/app/data` volume mapping.
       # For local development outside Docker, override `FileStorage__DatabaseConnectionString` with an appropriate local path.
       - FileStorage__DatabaseConnectionString=Data Source=/app/data/championships.db
-      - ConnectionStrings__R3EContentDatabase=Host=postgres;Database=r3e_content;Username=postgres;Password=postgres
-      - ConnectionStrings__RaceStatsDatabase=Host=postgres;Database=race_stats;Username=postgres;Password=postgres
+      - ConnectionStrings__PostgresDatabase=Host=postgres;Database=r3e_racing;Username=postgres;Password=postgres
       - R3EContent__BasePath=/app/Data/R3E
     volumes:
       - simresult_data:/app/data
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     user: "0" # run as root
 
   staticserver:

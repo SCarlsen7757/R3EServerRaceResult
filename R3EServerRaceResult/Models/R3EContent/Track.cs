@@ -4,7 +4,7 @@ public class Track
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public string Location { get; set; } = string.Empty;
+    public string CountryCode { get; set; } = string.Empty;
 
     public ICollection<Layout> Layouts { get; set; } = [];
 }

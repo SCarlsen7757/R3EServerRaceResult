@@ -2,21 +2,25 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using R3EServerRaceResult.Data;
 
 #nullable disable
 
-namespace R3EServerRaceResult.Migrations
+namespace R3EServerRaceResult.Data.Migrations.RaceStats
 {
     [DbContext(typeof(RaceStatsDbContext))]
-    partial class RaceStatsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251222123951_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("race_stats")
                 .HasAnnotation("ProductVersion", "10.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -25,224 +29,283 @@ namespace R3EServerRaceResult.Migrations
             modelBuilder.Entity("R3EServerRaceResult.Models.RaceStats.Driver", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("ix_drivers_name");
 
-                    b.ToTable("Drivers");
+                    b.ToTable("drivers", "race_stats");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.RaceStats.Event", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("EventDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("event_date");
 
                     b.Property<int>("LayoutId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("layout_id");
 
                     b.Property<string>("ServerName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("server_name");
 
                     b.Property<int>("TrackId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("track_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EventDate");
+                    b.HasIndex("EventDate")
+                        .HasDatabaseName("ix_events_event_date");
 
-                    b.HasIndex("LayoutId");
+                    b.HasIndex("LayoutId")
+                        .HasDatabaseName("ix_events_layout_id");
 
-                    b.HasIndex("TrackId");
+                    b.HasIndex("TrackId")
+                        .HasDatabaseName("ix_events_track_id");
 
-                    b.ToTable("Events");
+                    b.ToTable("events", "race_stats");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.RaceStats.Lap", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("DriverId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("driver_id");
 
                     b.Property<bool>("IsValid")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_valid");
 
                     b.Property<int>("LapNumber")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("lap_number");
 
                     b.Property<long?>("LapTime")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("lap_time");
 
                     b.Property<long?>("Sector1Time")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("sector_1_time");
 
                     b.Property<long?>("Sector2Time")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("sector_2_time");
 
                     b.Property<long?>("Sector3Time")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("sector_3_time");
 
                     b.Property<int>("SessionId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("session_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DriverId");
+                    b.HasIndex("DriverId")
+                        .HasDatabaseName("ix_laps_driver_id");
 
-                    b.HasIndex("LapTime");
+                    b.HasIndex("LapTime")
+                        .HasDatabaseName("ix_laps_lap_time");
 
-                    b.HasIndex("SessionId");
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_laps_session_id");
 
-                    b.HasIndex("SessionId", "DriverId", "LapNumber");
+                    b.HasIndex("SessionId", "DriverId", "LapNumber")
+                        .HasDatabaseName("ix_laps_session_driver_lap");
 
-                    b.ToTable("Laps");
+                    b.ToTable("laps", "race_stats");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.RaceStats.RaceIncident", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("DriverId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("driver_id");
 
                     b.Property<int>("IncidentPoints")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("incident_points");
 
                     b.Property<string>("IncidentType")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("incident_type");
 
                     b.Property<int?>("InvolvedDriverId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("involved_driver_id");
 
                     b.Property<int>("LapNumber")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("lap_number");
 
                     b.Property<int>("SessionId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("session_id");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DriverId");
+                    b.HasIndex("DriverId")
+                        .HasDatabaseName("ix_incidents_driver_id");
 
-                    b.HasIndex("IncidentType");
+                    b.HasIndex("IncidentType")
+                        .HasDatabaseName("ix_incidents_incident_type");
 
-                    b.HasIndex("InvolvedDriverId");
+                    b.HasIndex("InvolvedDriverId")
+                        .HasDatabaseName("ix_incidents_involved_driver_id");
 
-                    b.HasIndex("SessionId");
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_incidents_session_id");
 
-                    b.ToTable("Incidents");
+                    b.ToTable("incidents", "race_stats");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.RaceStats.RaceResult", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<long?>("BestLapTime")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("best_lap_time");
 
                     b.Property<int>("CarId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("car_id");
 
                     b.Property<int>("ClassPosition")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("class_position");
 
                     b.Property<int>("ClassStartPosition")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("class_start_position");
 
                     b.Property<int>("DriverId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("driver_id");
 
                     b.Property<string>("FinishStatus")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("finish_status");
 
                     b.Property<int>("Position")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
 
                     b.Property<int>("SessionId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("session_id");
 
                     b.Property<int>("StartPosition")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("start_position");
 
                     b.Property<int>("TotalLaps")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("total_laps");
 
                     b.Property<long>("TotalRaceTime")
-                        .HasColumnType("bigint");
+                        .HasColumnType("bigint")
+                        .HasColumnName("total_race_time");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BestLapTime");
+                    b.HasIndex("BestLapTime")
+                        .HasDatabaseName("ix_results_best_lap_time");
 
-                    b.HasIndex("CarId");
+                    b.HasIndex("CarId")
+                        .HasDatabaseName("ix_results_car_id");
 
-                    b.HasIndex("DriverId");
+                    b.HasIndex("DriverId")
+                        .HasDatabaseName("ix_results_driver_id");
 
-                    b.HasIndex("Position");
+                    b.HasIndex("Position")
+                        .HasDatabaseName("ix_results_position");
 
-                    b.HasIndex("SessionId");
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_results_session_id");
 
-                    b.ToTable("Results");
+                    b.ToTable("results", "race_stats");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.RaceStats.RaceSession", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("EventId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("event_id");
 
                     b.Property<int>("SessionNumber")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("session_number");
 
                     b.Property<string>("SessionType")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("session_type");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EventId");
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_sessions_event_id");
 
-                    b.HasIndex("SessionType");
+                    b.HasIndex("SessionType")
+                        .HasDatabaseName("ix_sessions_session_type");
 
                     b.HasIndex("EventId", "SessionType", "SessionNumber")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("ix_sessions_event_type_number");
 
-                    b.ToTable("Sessions");
+                    b.ToTable("sessions", "race_stats");
                 });
 
             modelBuilder.Entity("R3EServerRaceResult.Models.RaceStats.Lap", b =>
@@ -251,13 +314,15 @@ namespace R3EServerRaceResult.Migrations
                         .WithMany("Laps")
                         .HasForeignKey("DriverId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_laps_drivers");
 
                     b.HasOne("R3EServerRaceResult.Models.RaceStats.RaceSession", "Session")
                         .WithMany("Laps")
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_laps_sessions");
 
                     b.Navigation("Driver");
 
@@ -270,18 +335,21 @@ namespace R3EServerRaceResult.Migrations
                         .WithMany("Incidents")
                         .HasForeignKey("DriverId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_incidents_drivers");
 
                     b.HasOne("R3EServerRaceResult.Models.RaceStats.Driver", "InvolvedDriver")
                         .WithMany("InvolvedIncidents")
                         .HasForeignKey("InvolvedDriverId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_incidents_involved_drivers");
 
                     b.HasOne("R3EServerRaceResult.Models.RaceStats.RaceSession", "Session")
                         .WithMany("Incidents")
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_incidents_sessions");
 
                     b.Navigation("Driver");
 
@@ -296,13 +364,15 @@ namespace R3EServerRaceResult.Migrations
                         .WithMany("Results")
                         .HasForeignKey("DriverId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_results_drivers");
 
                     b.HasOne("R3EServerRaceResult.Models.RaceStats.RaceSession", "Session")
                         .WithMany("Results")
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_results_sessions");
 
                     b.Navigation("Driver");
 
@@ -315,7 +385,8 @@ namespace R3EServerRaceResult.Migrations
                         .WithMany("Sessions")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_sessions_events");
 
                     b.Navigation("Event");
                 });

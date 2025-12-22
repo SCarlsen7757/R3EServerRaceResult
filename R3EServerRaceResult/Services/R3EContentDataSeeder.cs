@@ -23,9 +23,9 @@ public class R3EContentDataSeeder
         this.logger = logger;
 
         var basePath = configuration.GetValue<string>("R3EContent:BasePath") ?? "Data/R3E";
-        contentJsonPath = Path.Combine(basePath, "Content.json");
-        manufacturersJsonPath = Path.Combine(basePath, "Manufacturers.json");
-        tracksJsonPath = Path.Combine(basePath, "Tracks.json");
+        this.contentJsonPath = Path.Combine(basePath, "Content.json");
+        this.manufacturersJsonPath = Path.Combine(basePath, "Manufacturers.json");
+        this.tracksJsonPath = Path.Combine(basePath, "Tracks.json");
     }
 
     public async Task SeedDataAsync(CancellationToken cancellationToken = default)
@@ -34,20 +34,7 @@ public class R3EContentDataSeeder
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
-                logger.LogInformation("Starting R3E content data seeding...");
-            }
-
-            // Check if data already exists
-            var hasExistingData = await dbContext.Cars.AnyAsync(cancellationToken);
-
-            if (hasExistingData)
-            {
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Existing R3E content data found. Clearing database for reseeding...");
-                }
-
-                await ClearExistingDataAsync(cancellationToken);
+                logger.LogInformation("Starting R3E content data sync from JSON files...");
             }
 
             // Parse JSON files
@@ -55,70 +42,24 @@ public class R3EContentDataSeeder
             var manufacturersData = await ParseManufacturersJsonAsync(cancellationToken);
             var trackLocationsData = await ParseTrackLocationsJsonAsync(cancellationToken);
 
-            // Seed data in transaction
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            // Upsert data (update existing or insert new)
+            await UpsertManufacturersAsync(manufacturersData, cancellationToken);
+            await UpsertCarClassesAsync(contentData, cancellationToken);
+            await UpsertCarsAndLiveriesAsync(contentData, manufacturersData, cancellationToken);
+            await UpsertTracksAndLayoutsAsync(contentData, trackLocationsData, cancellationToken);
 
-            try
+            if (logger.IsEnabled(LogLevel.Information))
             {
-                await SeedManufacturersAsync(manufacturersData, cancellationToken);
-                await SeedCarsAndLiveriesAsync(contentData, manufacturersData, cancellationToken);
-                await SeedTracksAndLayoutsAsync(contentData, trackLocationsData, cancellationToken);
-
-                await transaction.CommitAsync(cancellationToken);
-
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("R3E content data seeding completed successfully");
-                }
-            }
-            catch (Exception)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
+                logger.LogInformation("R3E content data sync completed successfully");
             }
         }
         catch (Exception ex)
         {
             if (logger.IsEnabled(LogLevel.Error))
             {
-                logger.LogError(ex, "Error seeding R3E content data");
+                logger.LogError(ex, "Error syncing R3E content data");
             }
             throw;
-        }
-    }
-
-    private async Task ClearExistingDataAsync(CancellationToken cancellationToken)
-    {
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Clearing existing R3E content data...");
-        }
-
-        // Delete in correct order due to foreign key constraints
-        // Liveries depend on Cars
-        dbContext.Liveries.RemoveRange(dbContext.Liveries);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        // Layouts depend on Tracks
-        dbContext.Layouts.RemoveRange(dbContext.Layouts);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        // Cars depend on CarClasses and Manufacturers
-        dbContext.Cars.RemoveRange(dbContext.Cars);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        // Tracks can be deleted independently
-        dbContext.Tracks.RemoveRange(dbContext.Tracks);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        // CarClasses and Manufacturers can be deleted now
-        dbContext.CarClasses.RemoveRange(dbContext.CarClasses);
-        dbContext.Manufacturers.RemoveRange(dbContext.Manufacturers);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Existing R3E content data cleared successfully");
         }
     }
 
@@ -176,36 +117,99 @@ public class R3EContentDataSeeder
         return trackLocations;
     }
 
-    private async Task SeedManufacturersAsync(ManufacturersRootJson manufacturersData, CancellationToken cancellationToken)
+    private async Task UpsertManufacturersAsync(ManufacturersRootJson manufacturersData, CancellationToken cancellationToken)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Seeding {Count} manufacturers...", manufacturersData.Manufacturers.Count);
+            logger.LogInformation("Syncing {Count} manufacturers...", manufacturersData.Manufacturers.Count);
         }
 
-        var manufacturers = manufacturersData.Manufacturers
-            .Select(m => new Manufacturer
-            {
-                Id = m.Id,
-                Name = m.Name,
-                Country = m.Country
-            })
-            .ToList();
+        var added = 0;
+        var updated = 0;
 
-        await dbContext.Manufacturers.AddRangeAsync(manufacturers, cancellationToken);
+        foreach (var manufacturerJson in manufacturersData.Manufacturers)
+        {
+            var existing = await dbContext.Manufacturers
+                .FirstOrDefaultAsync(m => m.Id == manufacturerJson.Id, cancellationToken);
+
+            if (existing == null)
+            {
+                dbContext.Manufacturers.Add(new Manufacturer
+                {
+                    Id = manufacturerJson.Id,
+                    Name = manufacturerJson.Name,
+                    CountryCode = manufacturerJson.Country
+                });
+                added++;
+            }
+            else
+            {
+                var changed = false;
+                if (existing.Name != manufacturerJson.Name)
+                {
+                    existing.Name = manufacturerJson.Name;
+                    changed = true;
+                }
+                if (existing.CountryCode != manufacturerJson.Country)
+                {
+                    existing.CountryCode = manufacturerJson.Country;
+                    changed = true;
+                }
+                if (changed) updated++;
+            }
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Seeded {Count} manufacturers", manufacturers.Count);
+            logger.LogInformation("Manufacturers: {Added} added, {Updated} updated", added, updated);
         }
     }
 
-    private async Task SeedCarsAndLiveriesAsync(ContentRootJson contentData, ManufacturersRootJson manufacturersData, CancellationToken cancellationToken)
+    private async Task UpsertCarClassesAsync(ContentRootJson contentData, CancellationToken cancellationToken)
+    {
+        var uniqueClassIds = contentData.Liveries
+            .Select(l => l.Car.Class)
+            .Distinct()
+            .ToList();
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Syncing {Count} car classes...", uniqueClassIds.Count);
+        }
+
+        var added = 0;
+
+        foreach (var classId in uniqueClassIds)
+        {
+            var existing = await dbContext.CarClasses
+                .FirstOrDefaultAsync(c => c.Id == classId, cancellationToken);
+
+            if (existing == null)
+            {
+                dbContext.CarClasses.Add(new CarClass
+                {
+                    Id = classId,
+                    Name = $"Class {classId}"
+                });
+                added++;
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Car classes: {Added} added", added);
+        }
+    }
+
+    private async Task UpsertCarsAndLiveriesAsync(ContentRootJson contentData, ManufacturersRootJson manufacturersData, CancellationToken cancellationToken)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Seeding cars and liveries...");
+            logger.LogInformation("Syncing cars and liveries...");
         }
 
         // Create a lookup of CarId -> ManufacturerId
@@ -213,28 +217,10 @@ public class R3EContentDataSeeder
             .SelectMany(m => m.CarIds.Select(carId => new { CarId = carId, ManufacturerId = m.Id }))
             .ToDictionary(x => x.CarId, x => x.ManufacturerId);
 
-        // Extract unique car classes
-        var uniqueClasses = contentData.Liveries
-            .Select(l => l.Car.Class)
-            .Distinct()
-            .Select(classId => new CarClass
-            {
-                Id = classId,
-                Name = $"Class {classId}" // Generic name, can be updated later
-            })
-            .ToList();
-
-        await dbContext.CarClasses.AddRangeAsync(uniqueClasses, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Seeded {Count} car classes", uniqueClasses.Count);
-        }
-
-        // Create cars
-        var cars = new List<Car>();
-        var liveries = new List<Livery>();
+        var carsAdded = 0;
+        var carsUpdated = 0;
+        var liveriesAdded = 0;
+        var liveriesUpdated = 0;
 
         foreach (var carWithLiveries in contentData.Liveries)
         {
@@ -250,100 +236,194 @@ public class R3EContentDataSeeder
                 continue;
             }
 
-            var car = new Car
+            // Upsert car
+            var existingCar = await dbContext.Cars
+                .FirstOrDefaultAsync(c => c.Id == carJson.Id, cancellationToken);
+
+            if (existingCar == null)
             {
-                Id = carJson.Id,
-                Name = carJson.Name,
-                ClassId = carJson.Class,
-                ManufacturerId = manufacturerId
-            };
+                existingCar = new Car
+                {
+                    Id = carJson.Id,
+                    Name = carJson.Name,
+                    ClassId = carJson.Class,
+                    ManufacturerId = manufacturerId
+                };
+                dbContext.Cars.Add(existingCar);
+                carsAdded++;
+            }
+            else
+            {
+                var changed = false;
+                if (existingCar.Name != carJson.Name)
+                {
+                    existingCar.Name = carJson.Name;
+                    changed = true;
+                }
+                if (existingCar.ClassId != carJson.Class)
+                {
+                    existingCar.ClassId = carJson.Class;
+                    changed = true;
+                }
+                if (existingCar.ManufacturerId != manufacturerId)
+                {
+                    existingCar.ManufacturerId = manufacturerId;
+                    changed = true;
+                }
+                if (changed) carsUpdated++;
+            }
 
-            cars.Add(car);
+            await dbContext.SaveChangesAsync(cancellationToken);
 
-            // Add liveries for this car
+            // Upsert liveries for this car
             foreach (var liveryJson in carWithLiveries.Liveries)
             {
-                liveries.Add(new Livery
+                var existingLivery = await dbContext.Liveries
+                    .FirstOrDefaultAsync(l => l.Id == liveryJson.Id, cancellationToken);
+
+                if (existingLivery == null)
                 {
-                    Id = liveryJson.Id,
-                    Name = liveryJson.Name,
-                    IsDefault = liveryJson.IsDefault,
-                    CarId = car.Id
-                });
+                    dbContext.Liveries.Add(new Livery
+                    {
+                        Id = liveryJson.Id,
+                        Name = liveryJson.Name,
+                        IsDefault = liveryJson.IsDefault,
+                        CarId = existingCar.Id
+                    });
+                    liveriesAdded++;
+                }
+                else
+                {
+                    var changed = false;
+                    if (existingLivery.Name != liveryJson.Name)
+                    {
+                        existingLivery.Name = liveryJson.Name;
+                        changed = true;
+                    }
+                    if (existingLivery.IsDefault != liveryJson.IsDefault)
+                    {
+                        existingLivery.IsDefault = liveryJson.IsDefault;
+                        changed = true;
+                    }
+                    if (existingLivery.CarId != existingCar.Id)
+                    {
+                        existingLivery.CarId = existingCar.Id;
+                        changed = true;
+                    }
+                    if (changed) liveriesUpdated++;
+                }
             }
-        }
 
-        await dbContext.Cars.AddRangeAsync(cars, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
 
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Seeded {Count} cars", cars.Count);
-        }
-
-        await dbContext.Liveries.AddRangeAsync(liveries, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Seeded {Count} liveries", liveries.Count);
+            logger.LogInformation("Cars: {Added} added, {Updated} updated", carsAdded, carsUpdated);
+            logger.LogInformation("Liveries: {Added} added, {Updated} updated", liveriesAdded, liveriesUpdated);
         }
     }
 
-    private async Task SeedTracksAndLayoutsAsync(ContentRootJson contentData, TrackLocationsRootJson trackLocationsData, CancellationToken cancellationToken)
+    private async Task UpsertTracksAndLayoutsAsync(ContentRootJson contentData, TrackLocationsRootJson trackLocationsData, CancellationToken cancellationToken)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Seeding tracks and layouts...");
+            logger.LogInformation("Syncing tracks and layouts...");
         }
 
         // Create a lookup of TrackId -> Location
         var trackLocations = trackLocationsData.Tracks
             .ToDictionary(t => t.Id, t => t.Location);
 
-        var tracks = new List<Track>();
-        var layouts = new List<Layout>();
+        var tracksAdded = 0;
+        var tracksUpdated = 0;
+        var layoutsAdded = 0;
+        var layoutsUpdated = 0;
 
         foreach (var trackJson in contentData.Tracks)
         {
-            // Get location from lookup, default to null if not found
+            // Get location from lookup
             trackLocations.TryGetValue(trackJson.Id, out var location);
 
-            var track = new Track
+            // Upsert track
+            var existingTrack = await dbContext.Tracks
+                .FirstOrDefaultAsync(t => t.Id == trackJson.Id, cancellationToken);
+
+            if (existingTrack == null)
             {
-                Id = trackJson.Id,
-                Name = trackJson.Name,
-                Location = location
-            };
+                existingTrack = new Track
+                {
+                    Id = trackJson.Id,
+                    Name = trackJson.Name,
+                    CountryCode = location
+                };
+                dbContext.Tracks.Add(existingTrack);
+                tracksAdded++;
+            }
+            else
+            {
+                var changed = false;
+                if (existingTrack.Name != trackJson.Name)
+                {
+                    existingTrack.Name = trackJson.Name;
+                    changed = true;
+                }
+                if (existingTrack.CountryCode != location)
+                {
+                    existingTrack.CountryCode = location;
+                    changed = true;
+                }
+                if (changed) tracksUpdated++;
+            }
 
-            tracks.Add(track);
+            await dbContext.SaveChangesAsync(cancellationToken);
 
+            // Upsert layouts for this track
             foreach (var layoutJson in trackJson.Layouts)
             {
-                layouts.Add(new Layout
+                var existingLayout = await dbContext.Layouts
+                    .FirstOrDefaultAsync(l => l.Id == layoutJson.Id, cancellationToken);
+
+                if (existingLayout == null)
                 {
-                    Id = layoutJson.Id,
-                    Name = layoutJson.Name,
-                    MaxVehicles = layoutJson.MaxVehicles,
-                    TrackId = track.Id
-                });
+                    dbContext.Layouts.Add(new Layout
+                    {
+                        Id = layoutJson.Id,
+                        Name = layoutJson.Name,
+                        MaxVehicles = layoutJson.MaxVehicles,
+                        TrackId = existingTrack.Id
+                    });
+                    layoutsAdded++;
+                }
+                else
+                {
+                    var changed = false;
+                    if (existingLayout.Name != layoutJson.Name)
+                    {
+                        existingLayout.Name = layoutJson.Name;
+                        changed = true;
+                    }
+                    if (existingLayout.MaxVehicles != layoutJson.MaxVehicles)
+                    {
+                        existingLayout.MaxVehicles = layoutJson.MaxVehicles;
+                        changed = true;
+                    }
+                    if (existingLayout.TrackId != existingTrack.Id)
+                    {
+                        existingLayout.TrackId = existingTrack.Id;
+                        changed = true;
+                    }
+                    if (changed) layoutsUpdated++;
+                }
             }
-        }
 
-        await dbContext.Tracks.AddRangeAsync(tracks, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
 
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Seeded {Count} tracks", tracks.Count);
-        }
-
-        await dbContext.Layouts.AddRangeAsync(layouts, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Seeded {Count} layouts", layouts.Count);
+            logger.LogInformation("Tracks: {Added} added, {Updated} updated", tracksAdded, tracksUpdated);
+            logger.LogInformation("Layouts: {Added} added, {Updated} updated", layoutsAdded, layoutsUpdated);
         }
     }
 }
