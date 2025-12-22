@@ -24,7 +24,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7vcuon23saoa"
+        "uid": "df7wk4qvkd98ge"
       },
       "fieldConfig": {
         "defaults": {
@@ -85,14 +85,14 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "dataset": "r3e_racing",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT d.name, AVG(session_incidents.total_incident_points) AS avg_incident_points\r\nFROM (\r\n    SELECT i.driver_id, i.session_id, SUM(i.incident_points) AS total_incident_points\r\n    FROM race_stats.incidents i\r\n    GROUP BY i.driver_id, i.session_id\r\n) session_incidents\r\nJOIN race_stats.drivers d ON session_incidents.driver_id = d.id\r\nGROUP BY d.name;\r\n",
+          "rawSql": "SELECT d.name, AVG(session_incidents.total_incident_points) AS avg_incident_points\r\nFROM (\r\n    SELECT i.driver_id, i.session_id, SUM(i.incident_points) AS total_incident_points\r\n    FROM race_stats.incidents i\r\n    GROUP BY i.driver_id, i.session_id\r\n) session_incidents\r\nJOIN race_stats.drivers d ON session_incidents.driver_id = d.id\r\nGROUP BY d.name\r\nORDER BY avg_incident_points DESC;\r\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -119,7 +119,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7vcuon23saoa"
+        "uid": "df7wk4qvkd98ge"
       },
       "fieldConfig": {
         "defaults": {
@@ -170,7 +170,7 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "dataset": "r3e_racing",
@@ -204,7 +204,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7vcuon23saoa"
+        "uid": "df7wk4qvkd98ge"
       },
       "fieldConfig": {
         "defaults": {
@@ -255,7 +255,7 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "dataset": "r3e_racing",
@@ -289,7 +289,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7vcuon23saoa"
+        "uid": "df7wk4qvkd98ge"
       },
       "fieldConfig": {
         "defaults": {
@@ -333,7 +333,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "dataset": "r3e_racing",
@@ -378,7 +378,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7vcuon23saoa"
+        "uid": "df7wk4qvkd98ge"
       },
       "fieldConfig": {
         "defaults": {
@@ -431,14 +431,14 @@
         "sizing": "auto",
         "valueMode": "text"
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "dataset": "r3e_racing",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT d.name, AVG(r.class_position) AS avg_class_position\r\nFROM race_stats.results r\r\nJOIN race_stats.drivers d ON r.driver_id = d.id\r\nGROUP BY d.name;",
+          "rawSql": "SELECT d.name, AVG(r.class_position) AS avg_class_position\r\nFROM race_stats.results r\r\nJOIN race_stats.drivers d ON r.driver_id = d.id\r\nGROUP BY d.name\r\nORDER BY avg_class_position DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -474,7 +474,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7vcuon23saoa"
+        "uid": "df7wk4qvkd98ge"
       },
       "fieldConfig": {
         "defaults": {
@@ -506,7 +506,7 @@
         "legend": {
           "calcs": [],
           "displayMode": "table",
-          "placement": "right",
+          "placement": "bottom",
           "showLegend": true,
           "values": []
         },
@@ -525,7 +525,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "dataset": "r3e_racing",
@@ -560,7 +560,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7vcuon23saoa"
+        "uid": "df7wk4qvkd98ge"
       },
       "fieldConfig": {
         "defaults": {
@@ -592,7 +592,7 @@
         "legend": {
           "calcs": [],
           "displayMode": "table",
-          "placement": "right",
+          "placement": "bottom",
           "showLegend": true,
           "values": []
         },
@@ -611,7 +611,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "dataset": "r3e_racing",
@@ -658,5 +658,5 @@
   "timezone": "browser",
   "title": "Race stats",
   "uid": "ad2qpzq",
-  "version": 14
+  "version": 3
 }
