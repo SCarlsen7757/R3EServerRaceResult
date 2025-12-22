@@ -24,7 +24,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7wk4qvkd98ge"
+        "uid": "PCC52D03280B7034C"
       },
       "fieldConfig": {
         "defaults": {
@@ -75,9 +75,7 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": true
         },
@@ -119,7 +117,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7wk4qvkd98ge"
+        "uid": "PCC52D03280B7034C"
       },
       "fieldConfig": {
         "defaults": {
@@ -160,9 +158,7 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": true
         },
@@ -204,7 +200,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7wk4qvkd98ge"
+        "uid": "PCC52D03280B7034C"
       },
       "fieldConfig": {
         "defaults": {
@@ -245,9 +241,7 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": true
         },
@@ -289,7 +283,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7wk4qvkd98ge"
+        "uid": "PCC52D03280B7034C"
       },
       "fieldConfig": {
         "defaults": {
@@ -323,9 +317,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -339,7 +331,7 @@
           "dataset": "r3e_racing",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "df7vcuon23saoa"
+            "uid": "PCC52D03280B7034C"
           },
           "editorMode": "builder",
           "format": "table",
@@ -378,7 +370,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7wk4qvkd98ge"
+        "uid": "PCC52D03280B7034C"
       },
       "fieldConfig": {
         "defaults": {
@@ -421,9 +413,7 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": true
         },
@@ -474,7 +464,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7wk4qvkd98ge"
+        "uid": "PCC52D03280B7034C"
       },
       "fieldConfig": {
         "defaults": {
@@ -500,9 +490,7 @@
       },
       "id": 6,
       "options": {
-        "displayLabels": [
-          "percent"
-        ],
+        "displayLabels": ["percent"],
         "legend": {
           "calcs": [],
           "displayMode": "table",
@@ -512,9 +500,7 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": true
         },
@@ -560,7 +546,7 @@
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "df7wk4qvkd98ge"
+        "uid": "PCC52D03280B7034C"
       },
       "fieldConfig": {
         "defaults": {
@@ -586,9 +572,7 @@
       },
       "id": 7,
       "options": {
-        "displayLabels": [
-          "percent"
-        ],
+        "displayLabels": ["percent"],
         "legend": {
           "calcs": [],
           "displayMode": "table",
@@ -598,9 +582,7 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": true
         },
