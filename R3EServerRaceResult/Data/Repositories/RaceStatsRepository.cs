@@ -65,6 +65,50 @@ public class RaceStatsRepository : IRaceStatsRepository
         return session;
     }
 
+    public async Task<RaceSession?> GetSessionByEventAndTypeAsync(int eventId, SessionType sessionType, int sessionNumber, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Sessions
+            .FirstOrDefaultAsync(s => 
+                s.EventId == eventId && 
+                s.SessionType == sessionType && 
+                s.SessionNumber == sessionNumber, 
+                cancellationToken);
+    }
+
+    public async Task DeleteSessionAsync(RaceSession session, CancellationToken cancellationToken = default)
+    {
+        dbContext.Sessions.Remove(session);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<Event?> GetEventByDetailsAsync(DateTime eventDate, int trackId, int layoutId, string serverName, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Events
+            .FirstOrDefaultAsync(e => 
+                e.EventDate.Date == eventDate.Date && 
+                e.TrackId == trackId && 
+                e.LayoutId == layoutId &&
+                e.ServerName == serverName, 
+                cancellationToken);
+    }
+
+    public async Task DeleteEventIfEmptyAsync(int eventId, CancellationToken cancellationToken = default)
+    {
+        // Check if event has any remaining sessions
+        var hasRemainingSessions = await dbContext.Sessions
+            .AnyAsync(s => s.EventId == eventId, cancellationToken);
+
+        if (!hasRemainingSessions)
+        {
+            var eventToDelete = await dbContext.Events.FindAsync([eventId], cancellationToken);
+            if (eventToDelete != null)
+            {
+                dbContext.Events.Remove(eventToDelete);
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+        }
+    }
+
     public async Task<RaceResult> CreateResultAsync(RaceResult result, CancellationToken cancellationToken = default)
     {
         dbContext.Results.Add(result);

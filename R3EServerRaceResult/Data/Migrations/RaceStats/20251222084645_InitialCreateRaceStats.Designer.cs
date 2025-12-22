@@ -2,18 +2,21 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using R3EServerRaceResult.Data;
 
 #nullable disable
 
-namespace R3EServerRaceResult.Migrations
+namespace R3EServerRaceResult.Data.Migrations.RaceStats
 {
     [DbContext(typeof(RaceStatsDbContext))]
-    partial class RaceStatsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251222084645_InitialCreateRaceStats")]
+    partial class InitialCreateRaceStats
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -58,6 +58,10 @@ public class RaceStatsDbContext : DbContext
 
             entity.HasIndex(e => e.EventId);
             entity.HasIndex(e => e.SessionType);
+            
+            // Unique constraint: one session of each type/number per event
+            entity.HasIndex(e => new { e.EventId, e.SessionType, e.SessionNumber })
+                .IsUnique();
         });
 
         modelBuilder.Entity<RaceResult>(entity =>

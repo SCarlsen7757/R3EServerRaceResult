@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Data\Migrations\R3EContent\" />
     <Folder Include="Data\Migrations\RaceStats\" />
   </ItemGroup>
 

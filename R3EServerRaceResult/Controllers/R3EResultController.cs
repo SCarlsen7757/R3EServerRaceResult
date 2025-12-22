@@ -247,17 +247,51 @@ namespace R3EServerRaceResult.Controllers
 
             try
             {
+                // Read the result file before deleting
+                var resultJson = await System.IO.File.ReadAllTextAsync(filePath);
+                Result? r3EResult = null;
+                
+                if (!string.IsNullOrWhiteSpace(resultJson))
+                {
+                    r3EResult = JsonSerializer.Deserialize<Result>(resultJson);
+                }
+
+                // Remove from summary (SQLite)
                 await RemoveResultFromSummary(filePath);
+
+                // Delete race stats (PostgreSQL)
+                if (r3EResult != null)
+                {
+                    try
+                    {
+                        await raceStatsService.DeleteRaceResultAsync(r3EResult);
+                        if (logger.IsEnabled(LogLevel.Debug))
+                        {
+                            logger.LogDebug("Race stats deleted for: {FilePath}", filePath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but don't fail the entire delete if race stats cleanup fails
+                        if (logger.IsEnabled(LogLevel.Warning))
+                        {
+                            logger.LogWarning(ex, "Error deleting race stats for: {FilePath}. Continuing with file deletion...", filePath);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
                 if (logger.IsEnabled(LogLevel.Warning))
                 {
-                    logger.LogWarning(ex, "Error removing result from summary before deleting file: {FilePath}", filePath);
+                    logger.LogWarning(ex, "Error during deletion process before file removal: {FilePath}", filePath);
                 }
-                return BadRequest("Error removing result from summary: " + ex.Message);
+                return BadRequest("Error during deletion process: " + ex.Message);
             }
+            
+            // Delete the file from disk
             System.IO.File.Delete(filePath);
+            
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogInformation("File deleted: {FilePath}", filePath);

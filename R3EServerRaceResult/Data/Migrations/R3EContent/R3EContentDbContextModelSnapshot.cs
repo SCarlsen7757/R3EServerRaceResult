@@ -7,7 +7,7 @@ using R3EServerRaceResult.Data;
 
 #nullable disable
 
-namespace R3EServerRaceResult.Data.Migrations
+namespace R3EServerRaceResult.Data.Migrations.R3EContent
 {
     [DbContext(typeof(R3EContentDbContext))]
     partial class R3EContentDbContextModelSnapshot : ModelSnapshot

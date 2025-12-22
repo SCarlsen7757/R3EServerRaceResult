@@ -14,6 +14,12 @@ public interface IRaceStatsRepository
     
     // Session operations
     Task<RaceSession> CreateSessionAsync(RaceSession session, CancellationToken cancellationToken = default);
+    Task<RaceSession?> GetSessionByEventAndTypeAsync(int eventId, SessionType sessionType, int sessionNumber, CancellationToken cancellationToken = default);
+    Task DeleteSessionAsync(RaceSession session, CancellationToken cancellationToken = default);
+    
+    // Event operations  
+    Task<Event?> GetEventByDetailsAsync(DateTime eventDate, int trackId, int layoutId, string serverName, CancellationToken cancellationToken = default);
+    Task DeleteEventIfEmptyAsync(int eventId, CancellationToken cancellationToken = default);
     
     // Result operations
     Task<RaceResult> CreateResultAsync(RaceResult result, CancellationToken cancellationToken = default);

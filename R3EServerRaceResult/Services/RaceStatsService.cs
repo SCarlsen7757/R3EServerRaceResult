@@ -98,9 +98,98 @@ public class RaceStatsService
         }
     }
 
+    /// <summary>
+    /// Delete race stats for a specific race result
+    /// </summary>
+    public async Task DeleteRaceResultAsync(Result result, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Find track and layout
+            var (trackId, layoutId) = await FindTrackAndLayoutAsync(result.Track, result.TrackLayout, cancellationToken);
+            
+            if (trackId == 0 || layoutId == 0)
+            {
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug("Track or layout not found for deletion. Skipping race stats cleanup.");
+                }
+                return;
+            }
+
+            // Find the event
+            var raceEvent = await raceStatsRepository.GetEventByDetailsAsync(
+                result.StartTime, trackId, layoutId, result.Server, cancellationToken);
+
+            if (raceEvent == null)
+            {
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug("Event not found for deletion. Race stats may not have been recorded.");
+                }
+                return;
+            }
+
+            // Delete all race sessions for this event
+            var raceSessions = result.Sessions
+                .Where(s => IsRaceSession(s.Type))
+                .ToList();
+
+            foreach (var session in raceSessions)
+            {
+                var sessionNumber = GetRaceSessionNumber(session.Type);
+                var existingSession = await raceStatsRepository.GetSessionByEventAndTypeAsync(
+                    raceEvent.Id, SessionType.Race, sessionNumber, cancellationToken);
+
+                if (existingSession != null)
+                {
+                    // Cascade delete will handle Results, Laps, and Incidents
+                    await raceStatsRepository.DeleteSessionAsync(existingSession, cancellationToken);
+                    
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Deleted race session {SessionType} #{Number} for event {EventId}",
+                            SessionType.Race, sessionNumber, raceEvent.Id);
+                    }
+                }
+            }
+
+            // Delete event if no sessions remain
+            await raceStatsRepository.DeleteEventIfEmptyAsync(raceEvent.Id, cancellationToken);
+
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Race stats cleanup completed for {Track} on {Date}", 
+                    result.Track, result.StartTime);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Error deleting race stats");
+            }
+            throw;
+        }
+    }
+
     private async Task ProcessSessionAsync(Event raceEvent, Session session, CancellationToken cancellationToken)
     {
         var sessionNumber = GetRaceSessionNumber(session.Type);
+        
+        // Check if session already exists to prevent duplicates
+        var existingSession = await raceStatsRepository.GetSessionByEventAndTypeAsync(
+            raceEvent.Id, SessionType.Race, sessionNumber, cancellationToken);
+
+        if (existingSession != null)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Session {SessionType} #{Number} for event {EventId} already exists. Skipping duplicate.",
+                    SessionType.Race, sessionNumber, raceEvent.Id);
+            }
+            return; // Skip processing duplicate session
+        }
 
         // Create session
         var raceSession = await raceStatsRepository.CreateSessionAsync(new RaceSession

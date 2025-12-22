@@ -8,11 +8,11 @@ using R3EServerRaceResult.Data;
 
 #nullable disable
 
-namespace R3EServerRaceResult.Data.Migrations
+namespace R3EServerRaceResult.Data.Migrations.R3EContent
 {
     [DbContext(typeof(R3EContentDbContext))]
-    [Migration("20251220160650_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251222084546_InitialCreateR3EContent")]
+    partial class InitialCreateR3EContent
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
