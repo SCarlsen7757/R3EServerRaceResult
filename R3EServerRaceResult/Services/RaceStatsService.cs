@@ -107,7 +107,7 @@ public class RaceStatsService
         {
             // Find track and layout
             var (trackId, layoutId) = await FindTrackAndLayoutAsync(result.Track, result.TrackLayout, cancellationToken);
-            
+
             if (trackId == 0 || layoutId == 0)
             {
                 if (logger.IsEnabled(LogLevel.Debug))
@@ -135,22 +135,27 @@ public class RaceStatsService
                 .Where(s => IsRaceSession(s.Type))
                 .ToList();
 
-            foreach (var session in raceSessions)
-            {
-                var sessionNumber = GetRaceSessionNumber(session.Type);
-                var existingSession = await raceStatsRepository.GetSessionByEventAndTypeAsync(
-                    raceEvent.Id, SessionType.Race, sessionNumber, cancellationToken);
-
-                if (existingSession != null)
+            var sessionsToDelete = raceSessions
+                .Select(session => new
                 {
-                    // Cascade delete will handle Results, Laps, and Incidents
-                    await raceStatsRepository.DeleteSessionAsync(existingSession, cancellationToken);
-                    
-                    if (logger.IsEnabled(LogLevel.Information))
-                    {
-                        logger.LogInformation("Deleted race session {SessionType} #{Number} for event {EventId}",
-                            SessionType.Race, sessionNumber, raceEvent.Id);
-                    }
+                    Session = session,
+                    SessionNumber = GetRaceSessionNumber(session.Type)
+                });
+
+            foreach (var item in sessionsToDelete)
+            {
+                var existingSession = await raceStatsRepository.GetSessionByEventAndTypeAsync(
+                    raceEvent.Id, SessionType.Race, item.SessionNumber, cancellationToken);
+
+                if (existingSession == null) continue;
+
+                // Cascade delete will handle Results, Laps, and Incidents
+                await raceStatsRepository.DeleteSessionAsync(existingSession, cancellationToken);
+
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Deleted race session {SessionType} #{Number} for event {EventId}",
+                        SessionType.Race, item.SessionNumber, raceEvent.Id);
                 }
             }
 
@@ -159,7 +164,7 @@ public class RaceStatsService
 
             if (logger.IsEnabled(LogLevel.Information))
             {
-                logger.LogInformation("Race stats cleanup completed for {Track} on {Date}", 
+                logger.LogInformation("Race stats cleanup completed for {Track} on {Date}",
                     result.Track, result.StartTime);
             }
         }
@@ -176,7 +181,7 @@ public class RaceStatsService
     private async Task ProcessSessionAsync(Event raceEvent, Session session, CancellationToken cancellationToken)
     {
         var sessionNumber = GetRaceSessionNumber(session.Type);
-        
+
         // Check if session already exists to prevent duplicates
         var existingSession = await raceStatsRepository.GetSessionByEventAndTypeAsync(
             raceEvent.Id, SessionType.Race, sessionNumber, cancellationToken);
@@ -220,8 +225,8 @@ public class RaceStatsService
                 ClassStartPosition = player.StartPositionInClass,
                 ClassPosition = player.PositionInClass,
                 TotalRaceTime = (long)player.TotalTime.TotalMilliseconds,
-                BestLapTime = player.BestLapTime.TotalMilliseconds < 0 
-                    ? null 
+                BestLapTime = player.BestLapTime.TotalMilliseconds < 0
+                    ? null
                     : (long)player.BestLapTime.TotalMilliseconds,
                 FinishStatus = player.FinishStatus,
                 TotalLaps = player.RaceSessionLaps.Count
@@ -232,19 +237,19 @@ public class RaceStatsService
             for (int lapIndex = 0; lapIndex < player.RaceSessionLaps.Count; lapIndex++)
             {
                 var lap = player.RaceSessionLaps[lapIndex];
-                
+
                 // Convert negative times to null (invalid/incomplete)
                 long? lapTime = lap.Time.TotalMilliseconds < 0 ? null : (long)lap.Time.TotalMilliseconds;
-                long? sector1 = lap.SectorTimes.Count > 0 && lap.SectorTimes[0].TotalMilliseconds >= 0 
-                    ? (long)lap.SectorTimes[0].TotalMilliseconds 
+                long? sector1 = lap.SectorTimes.Count > 0 && lap.SectorTimes[0].TotalMilliseconds >= 0
+                    ? (long)lap.SectorTimes[0].TotalMilliseconds
                     : null;
-                long? sector2 = lap.SectorTimes.Count > 1 && lap.SectorTimes[1].TotalMilliseconds >= 0 
-                    ? (long)lap.SectorTimes[1].TotalMilliseconds 
+                long? sector2 = lap.SectorTimes.Count > 1 && lap.SectorTimes[1].TotalMilliseconds >= 0
+                    ? (long)lap.SectorTimes[1].TotalMilliseconds
                     : null;
-                long? sector3 = lap.SectorTimes.Count > 2 && lap.SectorTimes[2].TotalMilliseconds >= 0 
-                    ? (long)lap.SectorTimes[2].TotalMilliseconds 
+                long? sector3 = lap.SectorTimes.Count > 2 && lap.SectorTimes[2].TotalMilliseconds >= 0
+                    ? (long)lap.SectorTimes[2].TotalMilliseconds
                     : null;
-                
+
                 allLaps.Add(new Lap
                 {
                     DriverId = driver.Id,

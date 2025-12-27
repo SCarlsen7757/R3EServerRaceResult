@@ -57,7 +57,7 @@ erDiagram
 
     Driver {
         int id "user id from r3e"
-        string name "Name shortend for privacy"
+        string name "Name shortened for privacy"
     }
     Event {
         int id "Auto generated id"
@@ -69,7 +69,7 @@ erDiagram
         int id "Auto generated id"
         int eventId FK
         SessionType sessionType "Enum (Practice, Qualify or Race)"
-        int sessionNumber "For Practice and Qualify it 0. For Race its 1 to 3"
+        int sessionNumber "For Practice and Qualify it's 0. For Race it's 1 to 3"
     }
     Result {
         int id "Auto generated id"

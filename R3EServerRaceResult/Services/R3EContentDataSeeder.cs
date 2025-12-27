@@ -333,7 +333,7 @@ public class R3EContentDataSeeder
 
         // Create a lookup of TrackId -> Location
         var trackLocations = trackLocationsData.Tracks
-            .ToDictionary(t => t.Id, t => t.Location);
+            .ToDictionary(t => t.Id, t => t.CountryCode);
 
         var tracksAdded = 0;
         var tracksUpdated = 0;
@@ -343,8 +343,15 @@ public class R3EContentDataSeeder
         foreach (var trackJson in contentData.Tracks)
         {
             // Get location from lookup
-            trackLocations.TryGetValue(trackJson.Id, out var location);
-
+            trackLocations.TryGetValue(trackJson.Id, out var countryCode);
+            if (countryCode == null)
+            {
+                countryCode = "Unknown";
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Track {TrackId} ({TrackName}) has no location mapping. Using 'Unknown'.", trackJson.Id, trackJson.Name);
+                }
+            }
             // Upsert track
             var existingTrack = await dbContext.Tracks
                 .FirstOrDefaultAsync(t => t.Id == trackJson.Id, cancellationToken);
@@ -355,7 +362,7 @@ public class R3EContentDataSeeder
                 {
                     Id = trackJson.Id,
                     Name = trackJson.Name,
-                    CountryCode = location
+                    CountryCode = countryCode
                 };
                 dbContext.Tracks.Add(existingTrack);
                 tracksAdded++;
@@ -368,9 +375,9 @@ public class R3EContentDataSeeder
                     existingTrack.Name = trackJson.Name;
                     changed = true;
                 }
-                if (existingTrack.CountryCode != location)
+                if (existingTrack.CountryCode != countryCode)
                 {
-                    existingTrack.CountryCode = location;
+                    existingTrack.CountryCode = countryCode;
                     changed = true;
                 }
                 if (changed) tracksUpdated++;

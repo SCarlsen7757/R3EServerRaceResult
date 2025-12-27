@@ -11,7 +11,7 @@ services:
       - LOG_LEVEL=TRACE
       - Championship__WebServer=${WEB_SERVER_URL:-http://your-domain.com:8251}
       - Championship__EventName=${EVENT_NAME:-Championship}
-      - Championship__LeagueName=${LEAUGE_NAME:-R3E <3}
+      - Championship__LeagueName=${LEAGUE_NAME:-R3E <3}
       - Championship__PointSystem__Race__0=25
       - Championship__PointSystem__Race__1=18
       - Championship__PointSystem__Race__2=15
