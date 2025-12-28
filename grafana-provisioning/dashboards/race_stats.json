@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 4,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -75,7 +75,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -83,14 +85,14 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.3.0",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "dataset": "r3e_racing",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT d.name, AVG(session_incidents.total_incident_points) AS avg_incident_points\r\nFROM (\r\n    SELECT i.driver_id, i.session_id, SUM(i.incident_points) AS total_incident_points\r\n    FROM race_stats.incidents i\r\n    GROUP BY i.driver_id, i.session_id\r\n) session_incidents\r\nJOIN race_stats.drivers d ON session_incidents.driver_id = d.id\r\nGROUP BY d.name\r\nORDER BY avg_incident_points DESC;\r\n",
+          "rawSql": "SELECT\r\n    d.name AS driver_name,\r\n    AVG(session_incidents.total_incident_points) AS avg_incident_points\r\nFROM (\r\n    SELECT\r\n        i.driver_id,\r\n        i.session_id,\r\n        SUM(i.incident_points) AS total_incident_points\r\n    FROM race_stats.incidents i\r\n    JOIN race_stats.sessions s\r\n        ON s.id = i.session_id\r\n    JOIN race_stats.events e\r\n        ON e.id = s.event_id\r\n    WHERE\r\n        e.event_date BETWEEN $__timeFrom() AND $__timeTo()\r\n    GROUP BY\r\n        i.driver_id,\r\n        i.session_id\r\n) AS session_incidents\r\nJOIN race_stats.drivers d\r\n    ON session_incidents.driver_id = d.id\r\nGROUP BY\r\n    d.name\r\nORDER BY\r\n    avg_incident_points DESC;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -139,7 +141,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 3,
+        "w": 6,
         "x": 11,
         "y": 0
       },
@@ -158,7 +160,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -166,14 +170,14 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.3.0",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "dataset": "r3e_racing",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT d.name, COUNT(*) AS incident_count\r\nFROM race_stats.incidents i\r\nJOIN race_stats.drivers d ON i.driver_id = d.id\r\nWHERE i.incident_type = 'CarToCarCollision'\r\nGROUP BY d.name\r\nORDER BY incident_count DESC\r\nLIMIT 3;",
+          "rawSql": "SELECT\r\n    d.name AS driver_name,\r\n    COUNT(*) AS incident_count\r\nFROM race_stats.incidents i\r\nJOIN race_stats.sessions s\r\n    ON s.id = i.session_id\r\nJOIN race_stats.events e\r\n    ON e.id = s.event_id\r\nJOIN race_stats.drivers d\r\n    ON i.driver_id = d.id\r\nWHERE\r\n    i.incident_type = 'CarToCarCollision'\r\n    AND e.event_date BETWEEN $__timeFrom() AND $__timeTo()\r\nGROUP BY\r\n    d.name\r\nORDER BY\r\n    incident_count DESC\r\nLIMIT 3;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -222,8 +226,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 4,
-        "x": 14,
+        "w": 7,
+        "x": 17,
         "y": 0
       },
       "id": 5,
@@ -241,7 +245,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -249,14 +255,14 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "12.3.0",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "dataset": "r3e_racing",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH RankedIncidents AS (\r\n    SELECT\r\n        d.name,\r\n        i.session_id,\r\n        COUNT(*) AS incident_count,\r\n        ROW_NUMBER() OVER (PARTITION BY d.name ORDER BY COUNT(*) DESC) AS rank\r\n    FROM race_stats.incidents i\r\n    JOIN race_stats.drivers d ON i.driver_id = d.id\r\n    WHERE i.incident_type = 'NotServingPenalty'\r\n    GROUP BY d.name, i.session_id\r\n)\r\nSELECT name, incident_count\r\nFROM RankedIncidents\r\nWHERE rank = 1\r\nORDER BY incident_count DESC\r\nLIMIT 5;\r\n",
+          "rawSql": "WITH RankedIncidents AS (\r\n    SELECT\r\n        d.name,\r\n        i.session_id,\r\n        COUNT(*) AS incident_count,\r\n        ROW_NUMBER() OVER (\r\n            PARTITION BY d.name\r\n            ORDER BY COUNT(*) DESC\r\n        ) AS rank\r\n    FROM race_stats.incidents i\r\n    JOIN race_stats.sessions s\r\n        ON s.id = i.session_id\r\n    JOIN race_stats.events e\r\n        ON e.id = s.event_id\r\n    JOIN race_stats.drivers d\r\n        ON i.driver_id = d.id\r\n    WHERE\r\n        i.incident_type = 'NotServingPenalty'\r\n        AND e.event_date BETWEEN $__timeFrom() AND $__timeTo()\r\n    GROUP BY\r\n        d.name,\r\n        i.session_id\r\n)\r\nSELECT\r\n    name AS driver_name,\r\n    incident_count\r\nFROM RankedIncidents\r\nWHERE rank = 1\r\nORDER BY incident_count DESC\r\nLIMIT 5;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -317,7 +323,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -325,7 +333,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.0",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "dataset": "r3e_racing",
@@ -333,9 +341,10 @@
             "type": "grafana-postgresql-datasource",
             "uid": "PCC52D03280B7034C"
           },
-          "editorMode": "builder",
+          "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT COUNT(*) FROM race_stats.laps LIMIT 50 ",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n    COUNT(*) AS lap_count\r\nFROM race_stats.laps l\r\nJOIN race_stats.sessions s\r\n    ON s.id = l.session_id\r\nJOIN race_stats.events e\r\n    ON e.id = s.event_id\r\nWHERE\r\n    e.event_date BETWEEN $__timeFrom() AND $__timeTo();",
           "refId": "A",
           "sql": {
             "columns": [
@@ -413,7 +422,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -421,14 +432,14 @@
         "sizing": "auto",
         "valueMode": "text"
       },
-      "pluginVersion": "12.3.0",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "dataset": "r3e_racing",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT d.name, AVG(r.class_position) AS avg_class_position\r\nFROM race_stats.results r\r\nJOIN race_stats.drivers d ON r.driver_id = d.id\r\nGROUP BY d.name\r\nORDER BY avg_class_position ASC ",
+          "rawSql": "SELECT\r\n    d.name AS driver_name,\r\n    AVG(r.class_position) AS avg_class_position\r\nFROM race_stats.results r\r\nJOIN race_stats.sessions s\r\n    ON s.id = r.session_id\r\nJOIN race_stats.events e\r\n    ON e.id = s.event_id\r\nJOIN race_stats.drivers d\r\n    ON r.driver_id = d.id\r\nWHERE\r\n    e.event_date BETWEEN $__timeFrom() AND $__timeTo()\r\nGROUP BY\r\n    d.name\r\nORDER BY\r\n    avg_class_position ASC;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -484,13 +495,15 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 4,
+        "w": 3,
         "x": 11,
         "y": 8
       },
       "id": 6,
       "options": {
-        "displayLabels": ["percent"],
+        "displayLabels": [
+          "percent"
+        ],
         "legend": {
           "calcs": [],
           "displayMode": "table",
@@ -500,7 +513,9 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -511,14 +526,14 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.0",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "dataset": "r3e_racing",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\r\n    cars.name AS car_name,\r\n    COUNT(results.car_id) AS usage_count\r\nFROM\r\n    race_stats.results AS results\r\nJOIN\r\n    r3e_content.cars AS cars\r\nON\r\n    results.car_id = cars.id\r\nGROUP BY\r\n    cars.name\r\nORDER BY\r\n    usage_count DESC",
+          "rawSql": "SELECT\r\n    cars.name AS car_name,\r\n    COUNT(results.car_id) AS usage_count\r\nFROM\r\n    race_stats.results AS results\r\nJOIN\r\n    race_stats.sessions AS sessions\r\n        ON sessions.id = results.session_id\r\nJOIN\r\n    race_stats.events AS events\r\n        ON events.id = sessions.event_id\r\nJOIN\r\n    r3e_content.cars AS cars\r\n        ON results.car_id = cars.id\r\nWHERE\r\n    events.event_date BETWEEN $__timeFrom() AND $__timeTo()\r\nGROUP BY\r\n    cars.name\r\nORDER BY\r\n    usage_count DESC;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -567,12 +582,14 @@
       "gridPos": {
         "h": 7,
         "w": 3,
-        "x": 15,
+        "x": 14,
         "y": 8
       },
       "id": 7,
       "options": {
-        "displayLabels": ["percent"],
+        "displayLabels": [
+          "percent"
+        ],
         "legend": {
           "calcs": [],
           "displayMode": "table",
@@ -582,7 +599,9 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -593,14 +612,14 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.0",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "dataset": "r3e_racing",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\r\n    manufacturers.name AS manufacturer_name,\r\n    COUNT(results.car_id) AS usage_count\r\nFROM\r\n    race_stats.results AS results\r\nJOIN\r\n    r3e_content.cars AS cars\r\nON\r\n    results.car_id = cars.id\r\nJOIN\r\n    r3e_content.manufacturers AS manufacturers\r\nON\r\n    cars.manufacturer_id = manufacturers.id\r\nGROUP BY\r\n    manufacturers.name\r\nORDER BY\r\n    usage_count DESC;\r\n",
+          "rawSql": "SELECT\r\n    manufacturers.name AS manufacturer_name,\r\n    COUNT(results.car_id) AS usage_count\r\nFROM\r\n    race_stats.results AS results\r\nJOIN\r\n    race_stats.sessions AS sessions\r\n        ON sessions.id = results.session_id\r\nJOIN\r\n    race_stats.events AS events\r\n        ON events.id = sessions.event_id\r\nJOIN\r\n    r3e_content.cars AS cars\r\n        ON results.car_id = cars.id\r\nJOIN\r\n    r3e_content.manufacturers AS manufacturers\r\n        ON cars.manufacturer_id = manufacturers.id\r\nWHERE\r\n    events.event_date BETWEEN $__timeFrom() AND $__timeTo()\r\nGROUP BY\r\n    manufacturers.name\r\nORDER BY\r\n    usage_count DESC;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -621,7 +640,93 @@
           }
         }
       ],
-      "title": "New panel",
+      "title": "Most used Manufacturer",
+      "transparent": true,
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PCC52D03280B7034C"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 3,
+        "x": 17,
+        "y": 8
+      },
+      "id": 8,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": []
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "dataset": "r3e_racing",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\r\n    tracks.name AS track_name,\r\n    COUNT(results.id) AS usage_count\r\nFROM\r\n    race_stats.results AS results\r\nJOIN\r\n    race_stats.sessions AS sessions\r\n        ON sessions.id = results.session_id\r\nJOIN\r\n    race_stats.events AS events\r\n        ON events.id = sessions.event_id\r\nJOIN\r\n    r3e_content.tracks AS tracks\r\n        ON events.track_id = tracks.id\r\nWHERE\r\n    events.event_date BETWEEN $__timeFrom() AND $__timeTo()\r\nGROUP BY\r\n    tracks.name\r\nORDER BY\r\n    usage_count DESC;",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Tracks",
       "transparent": true,
       "type": "piechart"
     }
@@ -638,7 +743,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Race stats",
+  "title": "Overview",
   "uid": "ad2qpzq",
-  "version": 1
+  "version": 7
 }
