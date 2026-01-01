@@ -75,7 +75,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -158,7 +160,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -241,7 +245,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -317,7 +323,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -385,8 +393,16 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "blue",
+                "color": "green",
                 "value": 0
+              },
+              {
+                "color": "blue",
+                "value": 25
+              },
+              {
+                "color": "purple",
+                "value": 50
               }
             ]
           }
@@ -414,13 +430,15 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
         "showUnfilled": true,
         "sizing": "auto",
-        "valueMode": "text"
+        "valueMode": "color"
       },
       "pluginVersion": "12.3.0",
       "targets": [
@@ -491,7 +509,9 @@
       },
       "id": 6,
       "options": {
-        "displayLabels": ["percent"],
+        "displayLabels": [
+          "percent"
+        ],
         "legend": {
           "calcs": [],
           "displayMode": "table",
@@ -501,7 +521,9 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -570,7 +592,9 @@
               "id": "byNames",
               "options": {
                 "mode": "exclude",
-                "names": ["usage_count"],
+                "names": [
+                  "usage_count"
+                ],
                 "prefix": "All except:",
                 "readOnly": true
               }
@@ -596,7 +620,9 @@
       },
       "id": 7,
       "options": {
-        "displayLabels": ["percent"],
+        "displayLabels": [
+          "percent"
+        ],
         "legend": {
           "calcs": [],
           "displayMode": "table",
@@ -606,7 +632,9 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
@@ -678,7 +706,9 @@
       },
       "id": 8,
       "options": {
-        "displayLabels": ["percent"],
+        "displayLabels": [
+          "percent"
+        ],
         "legend": {
           "calcs": [],
           "displayMode": "table",
@@ -688,7 +718,9 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": true
         },
