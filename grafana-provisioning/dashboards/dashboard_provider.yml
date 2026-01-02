@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: dashboards
+    folder: "Race Stats" 
+    type: file
+    updateIntervalSeconds: 30
+    disableDeletion: false
+    options:
+      path: /etc/grafana/provisioning/dashboards

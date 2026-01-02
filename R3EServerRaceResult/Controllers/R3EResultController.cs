@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using R3EServerRaceResult.Data.Repositories;
 using R3EServerRaceResult.Models;
 using R3EServerRaceResult.Models.R3EServerResult;
+using R3EServerRaceResult.Services;
 using R3EServerRaceResult.Services.ChampionshipGrouping;
 using R3EServerRaceResult.Settings;
 using System.Net;
@@ -19,19 +20,22 @@ namespace R3EServerRaceResult.Controllers
         private readonly ILogger<R3EResultController> logger;
         private readonly IChampionshipGroupingStrategy groupingStrategy;
         private readonly ISummaryFileRepository summaryFileRepository;
+        private readonly RaceStatsService raceStatsService;
 
         public R3EResultController(
             ILogger<R3EResultController> logger,
             IOptions<ChampionshipAppSettings> settings,
             IOptions<FileStorageAppSettings> fileStorageAppSettings,
             IChampionshipGroupingStrategy groupingStrategy,
-            ISummaryFileRepository summaryFileRepository)
+            ISummaryFileRepository summaryFileRepository,
+            RaceStatsService raceStatsService)
         {
             this.settings = settings.Value;
             this.fileStorageAppSettings = fileStorageAppSettings.Value;
             this.logger = logger;
             this.groupingStrategy = groupingStrategy;
             this.summaryFileRepository = summaryFileRepository;
+            this.raceStatsService = raceStatsService;
         }
 
         private readonly JsonSerializerOptions jsonSerializerOption = new()
@@ -243,17 +247,51 @@ namespace R3EServerRaceResult.Controllers
 
             try
             {
+                // Read the result file before deleting
+                var resultJson = await System.IO.File.ReadAllTextAsync(filePath);
+                Result? r3EResult = null;
+                
+                if (!string.IsNullOrWhiteSpace(resultJson))
+                {
+                    r3EResult = JsonSerializer.Deserialize<Result>(resultJson);
+                }
+
+                // Remove from summary (SQLite)
                 await RemoveResultFromSummary(filePath);
+
+                // Delete race stats (PostgreSQL)
+                if (r3EResult != null)
+                {
+                    try
+                    {
+                        await raceStatsService.DeleteRaceResultAsync(r3EResult);
+                        if (logger.IsEnabled(LogLevel.Debug))
+                        {
+                            logger.LogDebug("Race stats deleted for: {FilePath}", filePath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but don't fail the entire delete if race stats cleanup fails
+                        if (logger.IsEnabled(LogLevel.Warning))
+                        {
+                            logger.LogWarning(ex, "Error deleting race stats for: {FilePath}. Continuing with file deletion...", filePath);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
                 if (logger.IsEnabled(LogLevel.Warning))
                 {
-                    logger.LogWarning(ex, "Error removing result from summary before deleting file: {FilePath}", filePath);
+                    logger.LogWarning(ex, "Error during deletion process before file removal: {FilePath}", filePath);
                 }
-                return BadRequest("Error removing result from summary: " + ex.Message);
+                return BadRequest("Error during deletion process: " + ex.Message);
             }
+            
+            // Delete the file from disk
             System.IO.File.Delete(filePath);
+            
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogInformation("File deleted: {FilePath}", filePath);
@@ -471,6 +509,24 @@ namespace R3EServerRaceResult.Controllers
                 }
 
                 await MakeSimResultSummary(Path.Combine(resultStoragePath, fileName), result);
+
+                try
+                {
+                    await raceStatsService.ProcessRaceResultAsync(result);
+                    if (logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogDebug("Race stats processed for result: {FileName}", diskRaceResultPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail the entire request if race stats fails
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning(ex, "Error processing race stats for result: {FileName}. Continuing...", diskRaceResultPath);
+                    }
+                }
+
                 return (true, null);
             }
             catch (Exception ex)
